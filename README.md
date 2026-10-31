@@ -18,7 +18,8 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 * 8 Animationen: Heranfliegen, Aufsteigen, Fallen und hüpfen, Ploppen, Welle, Schreibmaschine, Drehen, Glitch
 * Animieren nach Wörtern oder Buchstaben, Tempo, Schwingen, Verzögerung zwischen Buchstaben
 * 7 Arten zu verschwinden: Ausblenden, auf den Boden fallen (Buchstaben bleiben auf Blöcken liegen), Zerspringen, Davonschweben, Wegwehen, Schrumpfen, Versinken
-* Farben: Klassisch, Hauptfarbe, Verlauf, Regenbogen, Weiß, plus Leuchten mit Stärke und Größe
+* Farben: **Albumcover** (Farben aus dem Cover des Songs, weiche Überblendung beim Songwechsel), Klassisch, Hauptfarbe, Verlauf, Regenbogen, Weiß, plus Leuchten mit Stärke und Größe
+* Kontur für gute Lesbarkeit auf Schnee und hellem Himmel, lange Töne wachsen und steigen beim Singen leicht an
 * Größe, Abstand, Höhe, Bereich, Schatten, durch Blöcke sichtbar oder nicht
 * Vorschau-Knopf, der sofort eine Beispielzeile vor dir zeigt
 

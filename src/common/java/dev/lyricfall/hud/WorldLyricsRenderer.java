@@ -68,6 +68,8 @@ public final class WorldLyricsRenderer {
    private static double velX, velY, velZ, speed, yawRate, lastViewYaw;
    private static float bank;
    private static Quaternionf camRot;
+   /** Cover colors for this frame (null: no cover seen yet, the accent colors are used). */
+   private static dev.lyricfall.media.CoverColors.Palette framePalette;
 
    private WorldLyricsRenderer() {
    }
@@ -541,6 +543,7 @@ public final class WorldLyricsRenderer {
     */
    private static void updateStage(Vec3 cam, Vec3 prev, double viewYaw, double viewPitch, HudConfig cfg, float dt) {
       camRot = cfg.worldSmooth ? dev.lyricfall.compat.CameraPos.rotation() : null;
+      framePalette = dev.lyricfall.media.CoverColors.current();
       if (!stageInit) {
          stageInit = true;
          recentering = false;
@@ -727,9 +730,17 @@ public final class WorldLyricsRenderer {
                   boolean sungNow = tw < w.durRel;
                   float sweep = sungNow ? clamp01((float)tw / w.durRel) : 1.0F;
                   float pulse = sungNow ? 1.0F + 0.09F * (float)Math.sin(Math.PI * tw / w.durRel) : 1.0F;
+                  float swellLift = 0.0F;
+                  if (sungNow && cfg.worldSwell && w.durRel >= 750L) {
+                     // held notes swell and rise a little while they are sung, then settle back
+                     float hold = clamp01((w.durRel - 750L) / 1200.0F);
+                     float env = (float)Math.sin(Math.PI * clamp01((float)tw / w.durRel));
+                     pulse += (0.08F + 0.10F * hold) * env;
+                     swellLift = 1.6F * env * (0.5F + hold);
+                  }
                   float bob = (float)Math.sin(wall * 2.2 + g.index * 1.3 + i * 0.7) * 1.3F * bounce;
                   float baseX = w.x;
-                  float baseY = w.y + lift;
+                  float baseY = w.y + lift - swellLift;
                   if (!letters) {
                      float p = clamp01((float)tw * speed / 380.0F);
                      float cx = baseX + w.w / 2.0F;
@@ -855,6 +866,19 @@ public final class WorldLyricsRenderer {
                float oy = (float)Math.sin(a);
                out.text(pose, x0 + ox * 0.6F * r, -4.5F + oy * 0.6F * r, seq, false, seeNow, inner << 24 | glowRgb);
                out.text(pose, x0 + ox * 1.3F * r, -4.5F + oy * 1.3F * r, seq, false, seeNow, outer << 24 | glowRgb);
+            }
+         }
+
+         if (cfg.worldOutline) {
+            // thin, slightly tinted dark rim: keeps pastel text readable on snow, sand and bright sky
+            int rim = lerpRgb(rgb, 0x0A0A12, 0.86F);
+            int ra = Math.round(alpha * 150.0F);
+            if (ra >= 5) {
+               for (int d = 0; d < 4; d++) {
+                  float ox = d < 2 ? -0.55F : 0.55F;
+                  float oy = (d & 1) == 0 ? -0.55F : 0.55F;
+                  out.text(pose, x0 + ox, -4.5F + oy, seq, false, seeNow, ra << 24 | rim);
+               }
             }
          }
 
@@ -1118,13 +1142,21 @@ public final class WorldLyricsRenderer {
    private static int color(HudConfig cfg, WorldLyricsRenderer.Group g, float x, int index, boolean lit, double wall) {
       int a = cfg.worldAccent.rgb;
       return switch (cfg.worldColor) {
+         case COVER -> {
+            dev.lyricfall.media.CoverColors.Palette p = framePalette;
+            int c1 = p != null ? p.primary() : a, c2 = p != null ? p.secondary() : cfg.worldAccent2.rgb;
+            // a gentle sweep through both cover colors along the line, the sung word lights up towards white
+            float t = g.maxX > g.minX ? clamp01((x - g.minX) / (g.maxX - g.minX)) : 0.5F;
+            int c = lerpRgb(c1, c2, t * t * (3.0F - 2.0F * t));
+            yield lit ? lerpRgb(c, 16777215, 0.55F) : lerpRgb(c, 16777215, 0.12F);
+         }
          case ACCENT -> lit ? lerpRgb(a, 16777215, 0.5F) : a;
          case GRADIENT -> {
             float t = g.maxX > g.minX ? clamp01((x - g.minX) / (g.maxX - g.minX)) : 0.5F;
             int c = lerpRgb(a, cfg.worldAccent2.rgb, t);
             yield lit ? lerpRgb(c, 16777215, 0.45F) : c;
          }
-         case RAINBOW -> hsv((float)(index * 0.035 + wall * 0.12), lit ? 0.35F : 0.65F, 1.0F);
+         case RAINBOW -> hsv((float)(index * 0.03 + wall * 0.08), lit ? 0.25F : 0.45F, 1.0F);
          case WHITE -> lit ? lerpRgb(16777215, a, 0.25F) : 16777215;
          default -> lit ? cfg.accentRgb() : 16777215;
       };

@@ -180,6 +180,8 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(choice("world_color", () -> c.worldColor, v -> c.worldColor = v));
                 rows.add(plainSwatches("world_accent", () -> c.worldAccent, v -> c.worldAccent = v));
                 rows.add(plainSwatches("world_accent2", () -> c.worldAccent2, v -> c.worldAccent2 = v));
+                rows.add(toggle("world_outline", () -> c.worldOutline, v -> c.worldOutline = v));
+                rows.add(toggle("world_swell", () -> c.worldSwell, v -> c.worldSwell = v));
                 rows.add(choice("world_glow", () -> c.worldGlow, v -> c.worldGlow = v));
                 rows.add(slider("world_glow_strength", 0, 100, 5, D.worldGlowStrength, () -> c.worldGlowStrength, v -> c.worldGlowStrength = (int) v, HudConfigScreen::percent));
                 rows.add(slider("world_glow_size", 50, 250, 10, D.worldGlowSize, () -> c.worldGlowSize, v -> c.worldGlowSize = (int) v, HudConfigScreen::percent));

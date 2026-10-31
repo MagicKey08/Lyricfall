@@ -87,6 +87,10 @@ public final class SystemMedia {
                             lastError = line.substring(3).trim();
                             continue;
                         }
+                        if (line.startsWith("ART")) {
+                            art(line.substring(3));
+                            continue;
+                        }
                         if (!line.startsWith("OK")) continue;
                         sessions = parse(line.substring(2), System.nanoTime());
                         lastLineNanos = System.nanoTime();
@@ -106,6 +110,23 @@ public final class SystemMedia {
             state = State.FAILED;
             try { Thread.sleep(backoff); } catch (InterruptedException e) { return; }
             backoff = Math.min(60_000, backoff * 2);
+        }
+    }
+
+    /** Latest cover per app as Windows reports it, together with the song it was read for. */
+    public record Art(String app, String title, String artist, byte[] bytes) {}
+
+    private static final java.util.Map<String, Art> ART = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static Art art(String app) { return app == null ? null : ART.get(app); }
+
+    private static void art(String body) {
+        String[] f = body.split(String.valueOf(FIELD), -1);
+        if (f.length < 4) return;
+        try {
+            byte[] bytes = Base64.getDecoder().decode(f[3].trim());
+            ART.put(f[0], new Art(f[0], f[1], f[2], bytes));
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -178,9 +199,30 @@ public final class SystemMedia {
             "  [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties,Windows.Media.Control,ContentType=WindowsRuntime]",
             "  $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])",
             "} catch { [Console]::Out.WriteLine('ERR ' + $_.Exception.Message); [Console]::Out.Flush(); exit 2 }",
+            "$thumbs = $true",
+            "try {",
+            "  [void][Windows.Storage.Streams.DataReader,Windows.Storage.Streams,ContentType=WindowsRuntime]",
+            "  [void][Windows.Storage.Streams.IRandomAccessStreamWithContentType,Windows.Storage.Streams,ContentType=WindowsRuntime]",
+            "} catch { $thumbs = $false }",
+            "function ReadThumb($ref) {",
+            "  if (-not $thumbs -or $ref -eq $null) { return $null }",
+            "  try {",
+            "    $st = Await ($ref.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])",
+            "    if ($st -eq $null) { return $null }",
+            "    $n = [uint32]$st.Size",
+            "    if ($n -le 0 -or $n -gt 3000000) { $st.Dispose(); return $null }",
+            "    $rd = New-Object Windows.Storage.Streams.DataReader($st.GetInputStreamAt(0))",
+            "    [void](Await ($rd.LoadAsync($n)) ([uint32]))",
+            "    $buf = New-Object byte[] $n",
+            "    $rd.ReadBytes($buf)",
+            "    $rd.Dispose(); $st.Dispose()",
+            "    return [Convert]::ToBase64String($buf)",
+            "  } catch { return $null }",
+            "}",
             "if ($mgr -eq $null) { [Console]::Out.WriteLine('ERR media manager unavailable'); [Console]::Out.Flush(); exit 3 }",
             "function Clean([string]$s) { if ($s -eq $null) { return '' }; return ($s -replace '[\\x00-\\x1F]', ' ') }",
             "$cache = @{}",
+            "$art = @{}",
             "$ErrorActionPreference = 'SilentlyContinue'",
             "while ($true) {",
             "  if (-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)) { exit 0 }",
@@ -195,7 +237,11 @@ public final class SystemMedia {
             "      $c = $cache[$app]",
             "      if ($c -eq $null -or $c.Key -ne $key -or ($now - $c.At).TotalMilliseconds -gt 1500) {",
             "        $props = Await ($s.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])",
-            "        if ($props -ne $null) { $c = @{ Key = $key; At = $now; Title = $props.Title; Artist = $props.Artist; Album = $props.AlbumTitle }; $cache[$app] = $c }",
+            "        if ($props -ne $null) {",
+            "          $c = @{ Key = $key; At = $now; Title = $props.Title; Artist = $props.Artist; Album = $props.AlbumTitle }; $cache[$app] = $c",
+            "          $b64 = ReadThumb $props.Thumbnail",
+            "          if ($b64 -ne $null -and $art[$app] -ne $b64) { $art[$app] = $b64; [Console]::Out.WriteLine('ART' + (Clean $app) + $US + (Clean $props.Title) + $US + (Clean $props.Artist) + $US + $b64) }",
+            "        }",
             "      }",
             "      if ($c -eq $null) { continue }",
             "      $pos = ($tl.Position - $tl.StartTime).TotalMilliseconds",

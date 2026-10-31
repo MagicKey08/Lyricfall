@@ -327,7 +327,14 @@ public final class LyricsRenderer {
         return true;
     }
 
-    private static int currentColor(HudConfig cfg) { return cfg.lyricsAccent ? cfg.accentRgb() : 0xFFFFFF; }
+    private static int currentColor(HudConfig cfg) {
+        if (!cfg.lyricsAccent) return 0xFFFFFF;
+        if (cfg.worldColor == HudConfig.WorldColor.COVER) {
+            dev.lyricfall.media.CoverColors.Palette p = dev.lyricfall.media.CoverColors.current();
+            if (p != null) return p.primary();
+        }
+        return cfg.accentRgb();
+    }
 
     private static void drawSubtitle(Canvas c, HudConfig cfg, Snapshot s, int idx, float a, float f) {
         final int pad = 6;

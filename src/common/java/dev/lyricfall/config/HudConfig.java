@@ -40,7 +40,7 @@ public final class HudConfig {
 
     /** Анимация появления слов песни в мире. */
     public enum WorldAnim { FLY, RISE, DROP, POP, WAVE, TYPE, SPIN, GLITCH }
-    public enum WorldColor { CLASSIC, ACCENT, GRADIENT, RAINBOW, WHITE }
+    public enum WorldColor { COVER, CLASSIC, ACCENT, GRADIENT, RAINBOW, WHITE }
     /** Как буквы уходят: падают на блоки, рассыпаются, улетают, сдуваются ветром и т. д. */
     public enum WorldExit { FADE, FALL, SHATTER, FLOAT, WIND, SHRINK, SINK }
     public enum LyricsEnter { SLIDE, RISE, POP, TYPE }
@@ -50,9 +50,13 @@ public final class HudConfig {
 
     public enum LyricsMode { OFF, SUBTITLE, KARAOKE }
 
+    /**
+     * Soft, bright tones that stay readable as floating text over sky, caves, snow and the nether
+     * (all around 70 to 80 % lightness, none of them neon).
+     */
     public enum Accent {
-        RASPBERRY(0xFC3F6B), YELLOW(0xFFDB4D), GREEN(0x1DB954), BLUE(0x4FA8FF),
-        PURPLE(0xA06BFF), ORANGE(0xFF8A3D), WHITE(0xFFFFFF);
+        ROSE(0xFF6F96), SAKURA(0xFFB3D1), PEACH(0xFFB48C), GOLD(0xFFD67A), MINT(0x7FEFC6),
+        ICE(0x8FD6FF), LILAC(0xBBA3FF), VIOLET(0x9479FF), WHITE(0xFFFFFF);
         public final int rgb;
         Accent(int rgb) { this.rgb = rgb; }
     }
@@ -75,7 +79,7 @@ public final class HudConfig {
     public int accentRgb() { return customAccent >= 0 ? customAccent : accent.rgb; }
 
     public boolean master = true;
-    public Accent accent = Accent.RASPBERRY;
+    public Accent accent = Accent.LILAC;
     /** Свой цвет акцента (RGB). -1 — используется {@link #accent}. */
     public int customAccent = -1;
     public boolean hideWithGui = false;
@@ -104,7 +108,7 @@ public final class HudConfig {
     /** Половина горизонтальной зоны, где появляются слова, градусов. Для узких и растянутых экранов её стоит уменьшить. */
     public float worldSpread = 57f;
     public boolean worldSeeThrough = true;
-    public boolean worldShadow = true;
+    public boolean worldShadow = false;
     public WorldAnim worldAnim = WorldAnim.RISE;
     public WorldExit worldExit = WorldExit.FALL;
     /** Сколько секунд слова остаются в мире после того, как их спели. */
@@ -116,9 +120,15 @@ public final class HudConfig {
     public int worldAnimSpeed = 100;
     /** Сила отскока букв при падении, %. */
     public int worldBounce = 100;
-    public WorldColor worldColor = WorldColor.CLASSIC;
-    public Accent worldAccent = Accent.RASPBERRY;
-    public Accent worldAccent2 = Accent.BLUE;
+    public WorldColor worldColor = WorldColor.COVER;
+    public Accent worldAccent = Accent.LILAC;
+    public Accent worldAccent2 = Accent.ICE;
+    /** Soft dark outline around every letter: readable on bright sky and snow without a hard shadow. */
+    public boolean worldOutline = true;
+    /** Long sung notes swell and glow a little stronger, like Apple Music lyrics. */
+    public boolean worldSwell = true;
+    /** Schema of this file: 1 = new color system (cover colors, outline instead of shadow) applied once. */
+    public int displayVersion = 0;
     public WorldGlow worldGlow = WorldGlow.SUNG;
     public int worldGlowStrength = 60;
     public int worldGlowSize = 100;
@@ -172,6 +182,12 @@ public final class HudConfig {
 
     private void sanitize() {
         HudConfig d = new HudConfig();
+        if (displayVersion < 1) {
+            worldColor = WorldColor.COVER;
+            worldShadow = false;
+            worldOutline = true;
+            displayVersion = 1;
+        }
         if (accent == null) accent = d.accent;
         if (customAccent < 0 || customAccent > 0xFFFFFF) customAccent = -1;
         if (lyricsMode == null) lyricsMode = d.lyricsMode;

@@ -32,6 +32,7 @@ public final class NowPlaying {
     private static String pendingKey;
     private static long pendingSince;
     private static int attempt;
+    private static SystemMedia.Art lastArt;
     private static long retryAt;
     private static long generation;
 
@@ -84,6 +85,13 @@ public final class NowPlaying {
             startLookup();
         } else if (t.durationMs() <= 0 && s.durationMs() > 0) {
             current = new Track(t.id(), t.title(), t.artist(), t.album(), s.durationMs(), null, t.provider());
+        }
+
+        SystemMedia.Art art = SystemMedia.art(s.app());
+        if (art != null && art != lastArt && current != null
+                && key(art.artist(), art.title()).equals(current.id())) {
+            lastArt = art;
+            CoverColors.submit(art.bytes());
         }
 
         if (lyricsState == LyricsState.NONE && attempt < RETRY_MS.length && System.currentTimeMillis() >= retryAt) {
@@ -156,7 +164,9 @@ public final class NowPlaying {
         return best;
     }
 
-    private static String key(SystemMedia.Session s) {
-        return (s.artist() + "\u0000" + s.title()).toLowerCase(Locale.ROOT).trim();
+    private static String key(SystemMedia.Session s) { return key(s.artist(), s.title()); }
+
+    private static String key(String artist, String title) {
+        return (artist + "\u0000" + title).toLowerCase(Locale.ROOT).trim();
     }
 }

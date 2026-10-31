@@ -29,7 +29,7 @@ public final class PlayerConfig {
     public boolean kugouLyrics = true;
 
     /** Settings schema: 1 = NetEase and KuGou switched on once for everyone (LRCLIB alone was not enough). */
-    public int settingsVersion = 1;
+    public int settingsVersion = 0;
 
     /** 0..3: how much accent is mixed into the window background (0 / 5 / 10 / 15 %). */
     public int tint = 1;
