@@ -1,0 +1,18 @@
+name: Probe lyric sources
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        run: |
+          probe() { code=$(curl -s -o body.txt -w '%{http_code} %{time_total}s' -A "$2" "$1"); echo "::notice::$code UA=[$2] $1 :: $(head -c 300 body.txt | tr -d '\n')"; }
+          U='https://lrclib.net/api/search?track_name=Lucid%20Dreams&artist_name=Juice%20WRLD'
+          probe "$U" "Lyricfall (Minecraft mod, based on Overtone)"
+          probe "$U" "Overtone (Minecraft mod)"
+          probe "$U" "Lyricfall v1.0.0 (https://github.com/MagicKey08/Lyricfall)"
+          probe "$U" "curl/8.5.0"
+          probe 'https://lrclib.net/api/get?track_name=Lucid%20Dreams&artist_name=Juice%20WRLD&album_name=Goodbye%20%26%20Good%20Riddance&duration=240' "Lyricfall v1.0.0 (https://github.com/MagicKey08/Lyricfall)"
+          probe 'https://lrclib.net/' "Mozilla/5.0"
+          probe 'https://raw.githubusercontent.com/amll-dev/amll-ttml-db/refs/heads/main/metadata/raw-lyrics-index.jsonl' "Lyricfall"
+          probe 'https://raw.githubusercontent.com/amll-dev/amll-ttml-db/main/README.md' "Lyricfall"
