@@ -8,13 +8,13 @@ jobs:
     steps:
       - name: Probe
         run: |
-          probe() { code=$(curl -s -o body.txt -w '%{http_code} %{time_total}s' -A "$2" "$1"); echo "::notice::$code UA=[$2] $1 :: $(head -c 300 body.txt | tr -d '\n')"; }
-          U='https://lrclib.net/api/search?track_name=Lucid%20Dreams&artist_name=Juice%20WRLD'
-          probe "$U" "Lyricfall (Minecraft mod, based on Overtone)"
-          probe "$U" "Overtone (Minecraft mod)"
-          probe "$U" "Lyricfall v1.0.0 (https://github.com/MagicKey08/Lyricfall)"
-          probe "$U" "curl/8.5.0"
-          probe 'https://lrclib.net/api/get?track_name=Lucid%20Dreams&artist_name=Juice%20WRLD&album_name=Goodbye%20%26%20Good%20Riddance&duration=240' "Lyricfall v1.0.0 (https://github.com/MagicKey08/Lyricfall)"
-          probe 'https://lrclib.net/' "Mozilla/5.0"
-          probe 'https://raw.githubusercontent.com/amll-dev/amll-ttml-db/refs/heads/main/metadata/raw-lyrics-index.jsonl' "Lyricfall"
-          probe 'https://raw.githubusercontent.com/amll-dev/amll-ttml-db/main/README.md' "Lyricfall"
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          note() { echo "::notice::$1 :: $(head -c 400 body.txt | tr -d '\n')"; }
+          for q in "Softcore The Neighbourhood" "witchblades Lil Peep" "Lucid Dreams Juice WRLD" "Headlock Imogen Heap"; do
+            e=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$q")
+            curl -s -A "$UA" -H 'Referer: https://music.163.com/' "https://music.163.com/api/search/get?s=$e&type=1&limit=5&offset=0" -o body.txt
+            id=$(python3 -c "import json;d=json.load(open('body.txt'));s=d['result']['songs'][0];print(s['id'])" 2>/dev/null)
+            echo "::notice::netease search [$q] -> id=$id $(python3 -c "import json;d=json.load(open('body.txt'));print([(s['name'],s['artists'][0]['name'],s.get('duration')) for s in d['result']['songs'][:3]])" 2>&1 | head -c 300)"
+            if [ -n "$id" ]; then curl -s -A "$UA" -H 'Referer: https://music.163.com/' "https://music.163.com/api/song/lyric?id=$id&lv=1&kv=1&tv=-1&yv=1" -o body.txt; note "netease lyric $id"; fi
+            curl -s -A "$UA" "https://mobileservice.kugou.com/api/v3/search/song?format=json&page=1&pagesize=5&showtype=1&keyword=$e" -o body.txt; note "kugou search [$q]"
+          done
