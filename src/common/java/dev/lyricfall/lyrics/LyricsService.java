@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Источники опрашиваются параллельно: цепочкой один зависший (VPN, блокировки) съедал общий таймаут, и до LRCLIB
- * дело не доходило. Priority: AMLL (word timings), LRCLIB, KuGou; without timestamps LRCLIB plain text.
+ * дело не доходило. Priority: AMLL (word timings), LRCLIB, NetEase, KuGou; without timestamps LRCLIB plain text.
  */
 public final class LyricsService {
     private static final long SOURCE_TIMEOUT_SECONDS = 20;
@@ -40,6 +40,7 @@ public final class LyricsService {
         if (online && c.amllLyrics) synced.add(guard(AmllClient.fetch(t), SOURCE_TIMEOUT_SECONDS));
         CompletableFuture<List<LyricLine>> lrclib = online ? guard(LrcLibClient.fetch(t), LRCLIB_TIMEOUT_SECONDS) : done(List.of());
         synced.add(lrclib);
+        if (online && c.neteaseLyrics) synced.add(guard(NetEaseClient.fetch(t), SOURCE_TIMEOUT_SECONDS));
         if (online && c.kugouLyrics) synced.add(guard(KuGouClient.fetch(t), SOURCE_TIMEOUT_SECONDS));
 
         List<CompletableFuture<List<LyricLine>>> plain = List.of(lrclib);

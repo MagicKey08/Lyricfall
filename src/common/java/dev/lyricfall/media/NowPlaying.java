@@ -28,6 +28,9 @@ public final class NowPlaying {
     private static volatile SystemMedia.Session session;
     private static volatile List<LyricLine> lyrics = List.of();
     private static volatile LyricsState lyricsState = LyricsState.WAITING;
+    private static final long SETTLE_MS = 450;
+    private static String pendingKey;
+    private static long pendingSince;
     private static int attempt;
     private static long retryAt;
     private static long generation;
@@ -73,6 +76,10 @@ public final class NowPlaying {
         String key = key(s);
         Track t = current;
         if (t == null || !t.id().equals(key)) {
+            // while Spotify switches songs, Windows briefly reports a mix of old and new title/artist
+            long now = System.currentTimeMillis();
+            if (!key.equals(pendingKey)) { pendingKey = key; pendingSince = now; return; }
+            if (now - pendingSince < SETTLE_MS) return;
             current = new Track(key, s.title(), s.artist(), s.album(), s.durationMs(), null, s.app());
             startLookup();
         } else if (t.durationMs() <= 0 && s.durationMs() > 0) {
@@ -150,6 +157,6 @@ public final class NowPlaying {
     }
 
     private static String key(SystemMedia.Session s) {
-        return (s.artist() + "\u0000" + s.title() + "\u0000" + s.album()).toLowerCase(Locale.ROOT);
+        return (s.artist() + "\u0000" + s.title()).toLowerCase(Locale.ROOT).trim();
     }
 }

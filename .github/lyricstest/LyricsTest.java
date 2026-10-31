@@ -13,11 +13,11 @@ public final class LyricsTest {
         Path cfg = Files.createTempDirectory("lf");
         Env.init(cfg, cfg);
         Object[][] songs = {
+                {"Softcore", "The Neighbourhood", "Hard To Imagine The Neighbourhood Ever Changing", 206_000L},
+                {"witchblades", "Lil Peep", "witchblades", 149_000L},
+                {"the way i see things", "Lil Peep", "Come Over When You're Sober, Pt. 2", 0L},
+                {"Headlock", "Imogen Heap", "Speak for Yourself", 216_000L},
                 {"Lucid Dreams", "Juice WRLD", "Goodbye & Good Riddance", 239_836L},
-                {"Lucid Dreams", "Juice WRLD", "Goodbye & Good Riddance", 0L},
-                {"SAD!", "XXXTENTACION", "?", 166_605L},
-                {"Glimpse of Us", "Joji", "SMITHEREENS", 233_456L},
-                {"Sweater Weather", "The Neighbourhood", "I Love You.", 240_400L},
         };
         int ok = 0;
         for (Object[] s : songs) {
@@ -28,9 +28,11 @@ public final class LyricsTest {
             String first = l.isEmpty() ? "-" : l.get(Math.min(3, l.size() - 1)).text();
             System.out.println("::notice::" + s[1] + " - " + s[0] + " (dur " + s[3] + "): " + l.size() + " lines, synced=" + synced
                     + ", " + (System.currentTimeMillis() - t0) + " ms, e.g. '" + first + "'");
+            boolean words = !l.isEmpty() && l.stream().anyMatch(LyricLine::hasWordTimings);
+            System.out.println("::notice::  word timings=" + words + ", first lines: " + l.stream().limit(3).map(LyricLine::text).toList());
             if (synced) ok++;
         }
         System.out.println(ok > 0 ? "::notice::lyrics test " + ok + "/" + songs.length : "::error::lyrics test found nothing");
-        System.exit(ok > 0 ? 0 : 1);
+        System.exit(ok >= songs.length - 1 ? 0 : 1);
     }
 }

@@ -22,8 +22,14 @@ public final class PlayerConfig {
     /** Word timed lyrics from AMLL TTML DB (an index is downloaded from GitHub every few days). */
     public boolean amllLyrics = true;
 
-    /** KuGou: unofficial API of a Chinese service, therefore off by default. */
-    public boolean kugouLyrics = false;
+    /** NetEase Cloud Music: huge catalogue of synced lyrics, often word timed. Unofficial API. */
+    public boolean neteaseLyrics = true;
+
+    /** KuGou: unofficial API of a Chinese service, fallback. */
+    public boolean kugouLyrics = true;
+
+    /** Settings schema: 1 = NetEase and KuGou switched on once for everyone (LRCLIB alone was not enough). */
+    public int settingsVersion = 1;
 
     /** 0..3: how much accent is mixed into the window background (0 / 5 / 10 / 15 %). */
     public int tint = 1;
@@ -61,6 +67,11 @@ public final class PlayerConfig {
     }
 
     private void sanitize() {
+        if (settingsVersion < 1) {
+            neteaseLyrics = true;
+            kugouLyrics = true;
+            settingsVersion = 1;
+        }
         if (windowAnim == null) windowAnim = WindowAnim.ZOOM;
         tint = Math.max(0, Math.min(3, tint));
         dim = Math.max(0, Math.min(100, dim));

@@ -218,6 +218,7 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(header("loading"));
                 rows.add(toggle("online_lyrics", () -> p.onlineLyrics, v -> p.onlineLyrics = v));
                 rows.add(toggle("amll_lyrics", () -> p.amllLyrics, v -> p.amllLyrics = v));
+                rows.add(toggle("netease_lyrics", () -> p.neteaseLyrics, v -> p.neteaseLyrics = v));
                 rows.add(toggle("kugou_lyrics", () -> p.kugouLyrics, v -> p.kugouLyrics = v));
                 rows.add(button("open_folder", HudConfigScreen::openLyricsFolder, false));
                 rows.add(header("look"));

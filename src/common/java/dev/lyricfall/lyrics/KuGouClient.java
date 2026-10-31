@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** Тексты KuGou. Официального API нет, запросы повторяют приложение сервиса, поэтому источник запасной и выключен по умолчанию. */
+/** Lyrics from KuGou. There is no official API, the requests mimic the service's app, so it is a fallback source. */
 public final class KuGouClient {
     private static final SafeHttp HTTP = new SafeHttp(Set.of("mobileservice.kugou.com", "lyrics.kugou.com"));
     private static final Map<String, String> HEADERS = Map.of("User-Agent", "Lyricfall (Minecraft mod, based on Overtone)");
@@ -73,7 +73,7 @@ public final class KuGouClient {
 
         String lrc = new String(Base64.getMimeDecoder().decode(content), StandardCharsets.UTF_8).replace("\uFEFF", "");
         List<LyricLine> lines = LrcParser.parse(lrc);
-        lines.removeIf(l -> l.text().isBlank());
+        lines = NetEaseClient.clean(lines);
         return !lines.isEmpty() && lines.get(0).timeMs() == LyricLine.UNSYNCED ? List.of() : lines;
     }
 
