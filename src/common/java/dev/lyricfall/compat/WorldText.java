@@ -2,6 +2,7 @@ package dev.lyricfall.compat;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.util.FormattedCharSequence;
+import org.joml.Quaternionf;
 
 /** Приёмник текста в мире на один кадр. Способ рисования зависит от версии игры. */
 public abstract class WorldText {
@@ -12,6 +13,9 @@ public abstract class WorldText {
     public abstract void rotateZ(PoseStack pose, float rad);
     /** Наклон вокруг горизонтальной оси: буквы, лежащие на блоках, повёрнуты плашмя. */
     public void rotateX(PoseStack pose, float rad) {}
+
+    /** Full rotation, e.g. the camera orientation for text that faces the screen. */
+    public void rotate(PoseStack pose, Quaternionf q) {}
 
     /** Вызывается после последнего слова кадра. */
     public void flush() {}

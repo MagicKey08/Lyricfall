@@ -158,6 +158,8 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(choice("world_mode", () -> c.worldMode, v -> c.worldMode = v));
                 rows.add(choice("follow", () -> c.worldFollowStyle, v -> c.worldFollowStyle = v));
                 rows.add(choice("word_layout", () -> c.worldLayout, v -> c.worldLayout = v));
+                rows.add(toggle("world_smooth", () -> c.worldSmooth, v -> c.worldSmooth = v));
+                rows.add(toggle("world_bank", () -> c.worldBank, v -> c.worldBank = v));
                 rows.add(header("look"));
                 rows.add(slider("size", 0.5, 2.5, 0.1, D.worldScale, () -> c.worldScale, v -> c.worldScale = (float) v, HudConfigScreen::pct));
                 rows.add(slider("distance", 3, 30, 0.5, D.worldDistance, () -> c.worldDistance, v -> c.worldDistance = (float) v, HudConfigScreen::blocks));

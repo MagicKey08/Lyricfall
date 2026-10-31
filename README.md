@@ -12,6 +12,8 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 * Jedes Wort fliegt herein, wenn es gesungen wird, das gerade gesungene Wort leuchtet in der Akzentfarbe
 * Modus: beim Spieler (folgt dir) oder an der Stelle der Zeile (bleibt stehen, du läufst daran vorbei)
 * Mitbewegen: immer vor deinen Augen oder fest in der Welt
+* Flüssige Bewegung: der Text zieht nicht hinterher, bleibt beim Seitwärtslaufen ruhig stehen, richtet sich auf kurvigen Wegen sanft neu aus und fliegt mit der Elytra vor dir her (mit Neigung und mehr Abstand bei hohem Tempo)
+* In Kurven neigen: leichte Schräglage beim Drehen, rollt mit [Do a Barrel Roll](https://modrinth.com/mod/do-a-barrel-roll) automatisch mit
 * Wörter in einer Reihe oder verstreut um dich herum
 * 8 Animationen: Heranfliegen, Aufsteigen, Fallen und hüpfen, Ploppen, Welle, Schreibmaschine, Drehen, Glitch
 * Animieren nach Wörtern oder Buchstaben, Tempo, Schwingen, Verzögerung zwischen Buchstaben

@@ -5,6 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.util.FormattedCharSequence;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 
 public final class WorldTextImpl extends WorldText {
     private static final int LIGHT = 0xF000F0;   // полная яркость независимо от освещения мира
@@ -23,4 +24,5 @@ public final class WorldTextImpl extends WorldText {
     @Override public void rotateY(PoseStack pose, float rad) { pose.mulPose(new Matrix4f().rotationY(rad)); }
     @Override public void rotateX(PoseStack pose, float rad) { pose.mulPose(new Matrix4f().rotationX(rad)); }
     @Override public void rotateZ(PoseStack pose, float rad) { pose.mulPose(new Matrix4f().rotationZ(rad)); }
+    @Override public void rotate(PoseStack pose, Quaternionf q) { pose.mulPose(new Matrix4f().rotation(q)); }
 }

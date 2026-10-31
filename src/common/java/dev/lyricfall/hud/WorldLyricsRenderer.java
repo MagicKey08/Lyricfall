@@ -29,6 +29,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
 
 public final class WorldLyricsRenderer {
    private static final int ROW_H = 12;
@@ -56,6 +57,17 @@ public final class WorldLyricsRenderer {
    private static final long SCATTER_HOLD_MS = 3200L;
    private static boolean seeNow;
    private static final long OCCLUSION_CHECK_NS = 150_000_000L;
+
+   // ---- smooth movement ("stage": one shared, smoothed direction all following lines hang on) ----
+   /** View may drift this far from the text before it re-centres (style "does not turn"). */
+   private static final double DEADZONE = Math.toRadians(32.0);
+   private static final double SETTLED = Math.toRadians(4.0);
+   private static boolean stageInit;
+   private static boolean recentering;
+   private static double stageYaw, stagePitch, stageExtra;
+   private static double velX, velY, velZ, speed, yawRate, lastViewYaw;
+   private static float bank;
+   private static Quaternionf camRot;
 
    private WorldLyricsRenderer() {
    }
@@ -379,10 +391,11 @@ public final class WorldLyricsRenderer {
          resetState();
       }
 
-      lastPlayer = mc.player;
-      lastCam = cam;
       HudConfig cfg = HudConfig.get();
       double yaw = Math.toRadians(mc.player.getYRot());
+      updateStage(cam, lastCam, yaw, Math.toRadians(mc.player.getXRot()), cfg, dt);
+      lastPlayer = mc.player;
+      lastCam = cam;
       Font font = mc.font;
       if (takesOver()) {
          drawTrackLyrics(pose, out, font, cam, yaw, cfg, dt, now);
@@ -407,6 +420,7 @@ public final class WorldLyricsRenderer {
    }
 
    private static void resetState() {
+      stageInit = false;
       groups.clear();
       scatterLines.clear();
       extras.clear();
@@ -519,6 +533,101 @@ public final class WorldLyricsRenderer {
       }
    }
 
+   /**
+    * Once per frame: camera velocity, turn rate and the shared direction the following text hangs on.
+    * Walking: the direction stays put (strafing left/right on a path keeps the text still) and only re-centres
+    * smoothly when you look clearly elsewhere. Fast travel (elytra, boat on ice, horse): it follows your view,
+    * pitches with you and pushes the text further ahead so it is never in your face.
+    */
+   private static void updateStage(Vec3 cam, Vec3 prev, double viewYaw, double viewPitch, HudConfig cfg, float dt) {
+      camRot = cfg.worldSmooth ? dev.lyricfall.compat.CameraPos.rotation() : null;
+      if (!stageInit) {
+         stageInit = true;
+         recentering = false;
+         stageYaw = viewYaw;
+         stagePitch = 0.0;
+         stageExtra = 0.0;
+         velX = velY = velZ = speed = yawRate = 0.0;
+         lastViewYaw = viewYaw;
+         bank = 0.0F;
+         return;
+      }
+      float step = Math.max(0.001F, dt);
+      if (prev != null) {
+         double kv = 1.0 - Math.exp(-step * 5.0);
+         velX += ((cam.x - prev.x) / step - velX) * kv;
+         velY += ((cam.y - prev.y) / step - velY) * kv;
+         velZ += ((cam.z - prev.z) / step - velZ) * kv;
+      }
+      speed = Math.sqrt(velX * velX + velY * velY + velZ * velZ);
+      double rawRate = wrap(viewYaw - lastViewYaw) / step;
+      lastViewYaw = viewYaw;
+      yawRate += (rawRate - yawRate) * (1.0 - Math.exp(-step * 6.0));
+
+      // 0 while walking or sprinting, 1 from roughly elytra cruising speed
+      double fast = smooth01((speed - 7.0) / 7.0);
+      boolean screen = cfg.worldFollowStyle == HudConfig.FollowStyle.SCREEN || cfg.worldLayout == HudConfig.WorldLayout.SCATTER;
+
+      double d = wrap(viewYaw - stageYaw);
+      double rate;
+      if (screen) {
+         rate = 9.0;
+      } else {
+         if (Math.abs(d) > DEADZONE) recentering = true;
+         if (recentering && Math.abs(d) < SETTLED) recentering = false;
+         rate = recentering ? 2.6 : 0.0;
+         rate = rate + (3.6 - rate) * fast;
+      }
+      stageYaw = wrap(stageYaw + d * (1.0 - Math.exp(-step * rate)));
+
+      double pitchTarget = Math.max(-1.2, Math.min(1.2, viewPitch * 0.9)) * fast;
+      stagePitch += (pitchTarget - stagePitch) * (1.0 - Math.exp(-step * 4.0));
+
+      double extraTarget = Math.min(9.0, Math.max(0.0, speed - 6.0) * 0.32);
+      stageExtra += (extraTarget - stageExtra) * (1.0 - Math.exp(-step * 2.0));
+
+      float bankTarget = 0.0F;
+      if (cfg.worldBank) {
+         double rx = -Math.cos(stageYaw), rz = -Math.sin(stageYaw);
+         double lateral = velX * rx + velZ * rz;
+         double turn = -yawRate * (0.035 + 0.06 * fast);
+         double strafe = -lateral * 0.012 * (1.0 - fast);
+         bankTarget = (float)Math.max(-0.2, Math.min(0.2, turn + strafe));
+      }
+      bank += (bankTarget - bank) * (1.0F - (float)Math.exp(-step * 5.0));
+   }
+
+   private static double wrap(double a) {
+      while (a > Math.PI) a -= Math.PI * 2.0;
+      while (a < -Math.PI) a += Math.PI * 2.0;
+      return a;
+   }
+
+   private static double smooth01(double t) {
+      t = Math.max(0.0, Math.min(1.0, t));
+      return t * t * (3.0 - 2.0 * t);
+   }
+
+   /** Where a following line sits with smooth movement: hangs rigidly on the stage, so it never lags behind. */
+   private static Vec3 stageTarget(WorldLyricsRenderer.Group g, Vec3 cam, HudConfig cfg) {
+      double dist = (cfg.worldDistance + stageExtra) * g.distK;
+      double ang = stageYaw + g.yawOff;
+      double cp = Math.cos(stagePitch);
+      double fx = -Math.sin(ang) * cp, fy = -Math.sin(stagePitch), fz = Math.cos(ang) * cp;
+      double rx = -Math.cos(ang), rz = -Math.sin(ang);
+      // up = right x forward
+      double ux = -rz * fy, uy = rz * fx - rx * fz, uz = rx * fy;
+      double lat = g.lateral * dist * (cfg.worldSpread / 57.0);
+      double up = cfg.worldHeight + g.vert;
+      // a hint of inertia: the text trails a little behind your movement and settles when you stop
+      double ix = -velX * 0.07, iy = -velY * 0.05, iz = -velZ * 0.07;
+      double il = Math.sqrt(ix * ix + iy * iy + iz * iz);
+      if (il > 0.9) { ix *= 0.9 / il; iy *= 0.9 / il; iz *= 0.9 / il; }
+      return new Vec3(cam.x + fx * dist + rx * lat + ux * up + ix,
+                      cam.y + fy * dist + uy * up + iy,
+                      cam.z + fz * dist + rz * lat + uz * up + iz);
+   }
+
    private static Vec3 target(WorldLyricsRenderer.Group g, Vec3 cam, double yaw, HudConfig cfg) {
       double dist = cfg.worldDistance * g.distK;
       double ang = yaw + g.yawOff;
@@ -538,8 +647,14 @@ public final class WorldLyricsRenderer {
             g.spawnYaw = yaw;
          }
 
-         Vec3 t = target(g, cam, g.fixedYaw ? g.spawnYaw : yaw, cfg);
-         if (!g.placed) {
+         boolean smooth = cfg.worldSmooth && g.follow;
+         Vec3 t = smooth ? stageTarget(g, cam, cfg) : target(g, cam, g.fixedYaw ? g.spawnYaw : yaw, cfg);
+         if (smooth) {
+            g.px = t.x;
+            g.py = t.y;
+            g.pz = t.z;
+            g.placed = true;
+         } else if (!g.placed) {
             g.px = t.x;
             g.py = t.y;
             g.pz = t.z;
@@ -581,8 +696,20 @@ public final class WorldLyricsRenderer {
             double wall = System.nanoTime() / 1.0E9;
             pose.pushPose();
             pose.translate((float)(g.px - cam.x), (float)(g.py - cam.y), (float)(g.pz - cam.z));
-            float face = (float)Math.atan2(cam.x - g.px, cam.z - g.pz);
-            out.rotateY(pose, face);
+            if (camRot != null) {
+               // faces the screen exactly and takes over the camera roll (Do a Barrel Roll)
+               out.rotate(pose, camRot);
+            } else {
+               float face = (float)Math.atan2(cam.x - g.px, cam.z - g.pz);
+               out.rotateY(pose, face);
+               if (cfg.worldSmooth) {
+                  double h = Math.sqrt((cam.x - g.px) * (cam.x - g.px) + (cam.z - g.pz) * (cam.z - g.pz));
+                  out.rotateX(pose, (float)-Math.atan2(cam.y - g.py, h));
+               }
+            }
+            if (cfg.worldBank && bank != 0.0F) {
+               out.rotateZ(pose, bank);
+            }
             if (g.scatter) {
                out.rotateZ(pose, g.tilt + 0.05F * (float)Math.sin(wall * 1.1 + g.index * 0.9));
             }

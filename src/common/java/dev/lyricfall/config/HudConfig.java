@@ -92,6 +92,10 @@ public final class HudConfig {
     public FollowStyle worldFollowStyle = FollowStyle.SCREEN;
     /** LINE — слова строки собираются в ряд; SCATTER — каждое слово появляется отдельно, в случайном месте рядом. */
     public WorldLayout worldLayout = WorldLayout.LINE;
+    /** Smooth movement: text moves rigidly with you, gently re-centres on curvy paths, flies ahead when gliding. */
+    public boolean worldSmooth = true;
+    /** Text leans into turns and rolls with the camera (Do a Barrel Roll). */
+    public boolean worldBank = true;
     public float worldScale = 1.0f;
     /** Расстояние от игрока до текста, блоков. */
     public float worldDistance = 9.0f;
