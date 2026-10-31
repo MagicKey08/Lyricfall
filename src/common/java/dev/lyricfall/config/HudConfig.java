@@ -45,6 +45,10 @@ public final class HudConfig {
     public enum WorldExit { FADE, FALL, SHATTER, FLOAT, WIND, SHRINK, SINK }
     public enum LyricsEnter { SLIDE, RISE, POP, TYPE }
     public enum WorldGlow { OFF, SUNG, ALL }
+    /** Particles that burst from every word as it is sung. AUTO picks one that suits the dimension. */
+    public enum WorldParticles { OFF, AUTO, GLOW, NOTES, SPARKS, SOUL, ASH, SNOW }
+    /** Ready made looks; CUSTOM as soon as anything is changed by hand. */
+    public enum WorldPreset { CUSTOM, CINEMA, MIDNIGHT, HYPE, CLEAN, DREAM, CYBER, GRAVITY, FLIGHT }
     /** Что анимируется по очереди: слова целиком или отдельные буквы. */
     public enum WorldUnit { WORDS, LETTERS }
 
@@ -127,6 +131,19 @@ public final class HudConfig {
     public boolean worldOutline = true;
     /** Long sung notes swell and glow a little stronger, like Apple Music lyrics. */
     public boolean worldSwell = true;
+    /** Ad-libs in brackets, like "(yeah)", are drawn smaller and paler; whole ad-lib lines float off to the side. */
+    public boolean worldAdlibs = true;
+    /** Three breathing dots during instrumental breaks, filling up until the singing starts again. */
+    public boolean worldInterlude = true;
+    /** Title and artist float in front of you for a moment when a new song starts. */
+    public boolean worldTitleCard = true;
+    public WorldParticles worldParticles = WorldParticles.AUTO;
+    /** Glow gets stronger in caves and at night, outline lighter where it is dark. */
+    public boolean worldAdaptive = true;
+    /** With LambDynamicLights the sung words light up the blocks around them. */
+    public boolean worldLight = true;
+    public int worldLightLevel = 10;
+    public WorldPreset worldPreset = WorldPreset.CUSTOM;
     /** Schema of this file: 1 = new color system (cover colors, outline instead of shadow) applied once. */
     public int displayVersion = 0;
     public WorldGlow worldGlow = WorldGlow.SUNG;
@@ -202,6 +219,9 @@ public final class HudConfig {
         if (worldAccent == null) worldAccent = d.worldAccent;
         if (worldAccent2 == null) worldAccent2 = d.worldAccent2;
         if (worldGlow == null) worldGlow = d.worldGlow;
+        if (worldParticles == null) worldParticles = d.worldParticles;
+        if (worldPreset == null) worldPreset = d.worldPreset;
+        worldLightLevel = Math.max(1, Math.min(15, worldLightLevel));
         worldLinger = Math.max(1, Math.min(20, worldLinger));
         worldLetterMs = Math.max(5, Math.min(150, worldLetterMs));
         worldAnimSpeed = Math.max(25, Math.min(300, worldAnimSpeed));

@@ -20,3 +20,8 @@ processResources {
 }
 
 registerDist(remap ? tasks.named('remapJar') : tasks.named('jar'))
+
+// LambDynamicLights API is only compiled against, the real classes come from that mod at runtime
+tasks.named('jar') {
+    exclude 'dev/lambdaurora/**'
+}

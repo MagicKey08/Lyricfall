@@ -23,6 +23,27 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 * Größe, Abstand, Höhe, Bereich, Schatten, durch Blöcke sichtbar oder nicht
 * Vorschau-Knopf, der sofort eine Beispielzeile vor dir zeigt
 
+**Presets** (im Tab "In der Welt" ganz oben, setzen Look und Verhalten auf einmal)
+
+| Preset | Look | Verhalten |
+|---|---|---|
+| Kino | Coverfarben, sanftes Leuchten, keine Partikel | steigt Buchstabe für Buchstabe auf, blendet ruhig aus |
+| Mitternacht | Violett zu Rosé, alles glüht weich, fallende Asche | Wörter fliegen langsam heran und versinken |
+| Hype | Coverfarben, starkes Leuchten, Funken | ploppt groß auf, schwingt stark, zerspringt |
+| Clean | weiß, keine Effekte | steigt auf, blendet aus, sonst nichts |
+| Traum | Sakura zu Eisblau, viel Leuchten, Lichtpartikel | Wörter verteilt um dich herum, Welle, schweben davon |
+| Cyber | Mint zu Violett, Funken | Glitch-Eingang, wird vom Wind weggeweht |
+| Schwerkraft | Coverfarben | bleibt an der Stelle, fällt herunter und bleibt 8 s auf den Blöcken liegen |
+| Elytra | Coverfarben, groß, Lichtpartikel | folgt dem Blick, weit vorne, neigt sich in Kurven, weht weg |
+
+**Extras**
+* Ad-Libs wie "(yeah)" kleiner und blasser, reine Ad-Lib-Zeilen schweben seitlich wie eine zweite Stimme
+* Drei atmende Punkte in Instrumental-Pausen, die sich bis zum Einsatz füllen
+* Songtitel und Künstler schweben beim Songstart kurz vor dir
+* Partikel an jedem gesungenen Wort (Noten, Leuchten, Funken, Seelenflammen, Asche, Schnee oder automatisch je nach Dimension)
+* Mit [LambDynamicLights](https://modrinth.com/mod/lambdynamiclights) beleuchten die gesungenen Wörter die Umgebung
+* Passt sich an: mehr Leuchten in Höhlen und nachts
+
 **Lyrics auf dem Bildschirm** (optional)
 * Untertitel (aktuelle und nächste Zeile) oder Karaoke (3 bis 9 scrollende Zeilen)
 * Karaoke Wort für Wort, Animationen beim Erscheinen und Verschwinden

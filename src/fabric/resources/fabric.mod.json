@@ -22,6 +22,9 @@
   "entrypoints": {
     "client": [
       "dev.lyricfall.fabric.LyricfallFabric"
+    ],
+    "lambdynlights:initializer": [
+      "dev.lyricfall.fabric.LyricfallLights"
     ]
   },
   "depends": {
@@ -29,6 +32,10 @@
     "fabric-api": "*",
     "minecraft": "${minecraft_range}",
     "java": ">=${java}"
+  },
+  "suggests": {
+    "lambdynlights": "*",
+    "do_a_barrel_roll": "*"
   },
   "custom": {
     "credits": {

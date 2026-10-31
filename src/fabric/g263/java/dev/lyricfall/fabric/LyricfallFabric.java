@@ -28,6 +28,10 @@ public final class LyricfallFabric implements ClientModInitializer {
         LevelRenderEvents.COLLECT_SUBMITS.register(ctx -> WorldLyricsRenderer.render(ctx.poseStack(), new WorldTextImpl(ctx.submitNodeCollector())));
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> LyricfallMod.onClientStarted());
-        ClientTickEvents.END_CLIENT_TICK.register(client -> LyricfallMod.onClientTick());
+        boolean lights = loader.isModLoaded("lambdynlights");
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            LyricfallMod.onClientTick();
+            if (lights) LyricfallLights.tick();
+        });
     }
 }

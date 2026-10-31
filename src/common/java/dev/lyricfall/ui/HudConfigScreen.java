@@ -153,6 +153,7 @@ public class HudConfigScreen extends ModScreen {
         PlayerConfig p = pcfg();
         switch (tab) {
             case WORLD -> {
+                rows.add(new PresetRow());
                 rows.add(toggle("world_enabled", () -> c.worldLyrics, v -> c.worldLyrics = v));
                 rows.add(toggle("world_with_hud", () -> c.lyricsWithWorld, v -> c.lyricsWithWorld = v));
                 rows.add(choice("world_mode", () -> c.worldMode, v -> c.worldMode = v));
@@ -185,6 +186,14 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(choice("world_glow", () -> c.worldGlow, v -> c.worldGlow = v));
                 rows.add(slider("world_glow_strength", 0, 100, 5, D.worldGlowStrength, () -> c.worldGlowStrength, v -> c.worldGlowStrength = (int) v, HudConfigScreen::percent));
                 rows.add(slider("world_glow_size", 50, 250, 10, D.worldGlowSize, () -> c.worldGlowSize, v -> c.worldGlowSize = (int) v, HudConfigScreen::percent));
+                rows.add(toggle("world_adaptive", () -> c.worldAdaptive, v -> c.worldAdaptive = v));
+                rows.add(header("extras"));
+                rows.add(toggle("world_adlibs", () -> c.worldAdlibs, v -> c.worldAdlibs = v));
+                rows.add(toggle("world_interlude", () -> c.worldInterlude, v -> c.worldInterlude = v));
+                rows.add(toggle("world_title_card", () -> c.worldTitleCard, v -> c.worldTitleCard = v));
+                rows.add(choice("world_particles", () -> c.worldParticles, v -> c.worldParticles = v));
+                rows.add(toggle("world_light", () -> c.worldLight, v -> c.worldLight = v));
+                rows.add(slider("world_light_level", 1, 15, 1, D.worldLightLevel, () -> c.worldLightLevel, v -> c.worldLightLevel = (int) v, HudConfigScreen::num));
                 rows.add(button("demo", WorldLyricsRenderer::demo, false));
                 rows.add(note(T.get("note.world")));
             }
@@ -279,6 +288,7 @@ public class HudConfigScreen extends ModScreen {
 
     private void touched() {
         if (tab != Tab.WORLD) return;
+        cfg().worldPreset = HudConfig.WorldPreset.CUSTOM;   // anything changed by hand is no longer the preset
         long now = System.currentTimeMillis();
         if (now - lastDemo < 700) return;
         lastDemo = now;
@@ -521,6 +531,35 @@ public class HudConfigScreen extends ModScreen {
             dev.lyricfall.util.Browser.openFolder(dir);
         } catch (Exception e) {
             LyricfallMod.LOGGER.warn("Cannot open lyrics folder: {}", e.toString());
+        }
+    }
+
+    /** Big preset switcher at the top of the world tab: applies a whole look at once and shows a sample. */
+    private final class PresetRow extends Row {
+        PresetRow() { super("preset", 40); }
+
+        @Override void draw(boolean hover) {
+            HudConfig.WorldPreset cur = cfg().worldPreset;
+            PlayerTheme.rrect(g(), x, y + 2, w, h - 6, Math.min(th.radius + 1, 10), hover ? th.hover : th.trackBg);
+            g().text(font, font.plainSubstrByWidth(T.get("set.preset"), w / 2), x + 8, y + 8, PlayerTheme.TEXT_DIM);
+            String name = HudConfig.label(cur);
+            g().text(font, font.plainSubstrByWidth(name, w - 40), x + 8, y + 20, th.accent);
+            String desc = font.plainSubstrByWidth(T.get("preset_desc." + cur.name().toLowerCase(Locale.ROOT)), w - font.width(name) - 40);
+            g().text(font, desc, x + 14 + font.width(name), y + 20, PlayerTheme.TEXT_MID);
+            int ay = y + 18;
+            PlayerTheme.tri(g(), x + w - 26, ay, 4, 7, false, hover ? th.accent : PlayerTheme.TEXT_DIM);
+            PlayerTheme.tri(g(), x + w - 14, ay, 4, 7, true, hover ? th.accent : PlayerTheme.TEXT_DIM);
+        }
+
+        @Override boolean press(int button) {
+            HudConfig.WorldPreset[] all = HudConfig.WorldPreset.values();
+            int i = cfg().worldPreset.ordinal();
+            boolean back = mouseX >= x + w - 30 && mouseX < x + w - 18;
+            do { i = (i + (back ? all.length - 1 : 1)) % all.length; } while (all[i] == HudConfig.WorldPreset.CUSTOM);
+            dev.lyricfall.config.Presets.apply(cfg(), all[i]);
+            cfg().save();
+            WorldLyricsRenderer.demo();
+            return false;
         }
     }
 

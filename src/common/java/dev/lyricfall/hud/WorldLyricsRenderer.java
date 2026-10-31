@@ -71,6 +71,20 @@ public final class WorldLyricsRenderer {
    /** Cover colors for this frame (null: no cover seen yet, the accent colors are used). */
    private static dev.lyricfall.media.CoverColors.Palette framePalette;
 
+   // ---- extras ----
+   /** Ad-libs are drawn at this size relative to the main words. */
+   private static final float ADLIB_K = 0.68F;
+   /** Instrumental break needed before the breathing dots show up. */
+   private static final long INTERLUDE_MIN_MS = 6500L;
+   private static final FormattedCharSequence DOT = FormattedCharSequence.forward("\u2022", Style.EMPTY);
+   private static WorldLyricsRenderer.Group dots;
+   private static String lastCardId;
+   /** 0 bright day, 1 dark cave or night: smoothed, makes the glow stronger and the outline lighter. */
+   private static float envDark;
+   /** Orientation of the group being drawn right now (unit vectors of its local x and y axis in the world). */
+   private static double axX, axY, axZ, ayX, ayY, ayZ;
+   private static double lightX = Double.NaN, lightY, lightZ;
+
    private WorldLyricsRenderer() {
    }
 
@@ -194,16 +208,37 @@ public final class WorldLyricsRenderer {
       return g;
    }
 
+   /** Words inside round brackets are ad-libs / background vocals: marked and shown without the brackets. */
+   private static void markAdlibs(List<WorldLyricsRenderer.Word> words) {
+      boolean in = false;
+      for (WorldLyricsRenderer.Word w : words) {
+         String t = w.text;
+         if (t.startsWith("(")) in = true;
+         boolean ad = in;
+         if (t.endsWith(")") || t.endsWith("),") || t.endsWith(").") || t.endsWith(")?") || t.endsWith(")!")) in = false;
+         if (ad) {
+            String stripped = t.replace("(", "").replace(")", "").trim();
+            if (!stripped.isEmpty()) {
+               w.text = stripped;
+               w.adlib = true;
+            }
+         }
+      }
+   }
+
    private static void finish(WorldLyricsRenderer.Group g, Font font) {
       int space = Math.max(2, font.width(" "));
       List<List<WorldLyricsRenderer.Word>> rows = new ArrayList<>();
       List<WorldLyricsRenderer.Word> row = new ArrayList<>();
       int cur = 0;
+      if (HudConfig.get().worldAdlibs) markAdlibs(g.words);
 
       for (WorldLyricsRenderer.Word w : g.words) {
-         w.w = Math.max(1, font.width(w.text));
+         float k = w.adlib ? ADLIB_K : 1.0F;
+         w.rawW = Math.max(1, font.width(w.text));
+         w.w = Math.max(1, Math.round(w.rawW * k));
          w.seq = FormattedCharSequence.forward(w.text, Style.EMPTY);
-         w.glyphs = glyphs(w.text, font);
+         w.glyphs = glyphs(w.text, font, k);
          if (!row.isEmpty() && cur + space + w.w > 230) {
             rows.add(row);
             row = new ArrayList<>();
@@ -226,7 +261,7 @@ public final class WorldLyricsRenderer {
 
          for (WorldLyricsRenderer.Word w : rw) {
             w.x -= width / 2.0F;
-            w.y = (r - (rows.size() - 1) / 2.0F) * 12.0F;
+            w.y = (r - (rows.size() - 1) / 2.0F) * 12.0F + (w.adlib ? 2.5F : 0.0F);
          }
       }
 
@@ -255,9 +290,17 @@ public final class WorldLyricsRenderer {
       if (g.vert == 0.0F) {
          g.vert = ((h >>> 12 & 0xFF) % 3 - 1) * 0.18F;
       }
+
+      boolean allAdlib = !g.words.isEmpty();
+      for (WorldLyricsRenderer.Word w : g.words) allAdlib &= w.adlib;
+      if (allAdlib && g.index >= 0) {
+         // a line that is only an ad-lib floats off to one side, like a second voice
+         g.lateral = (g.index % 2 == 0 ? 0.6F : -0.6F);
+         g.vert -= 0.25F;
+      }
    }
 
-   private static List<WorldLyricsRenderer.Glyph> glyphs(String text, Font font) {
+   private static List<WorldLyricsRenderer.Glyph> glyphs(String text, Font font, float k) {
       List<WorldLyricsRenderer.Glyph> out = new ArrayList<>();
       int x = 0;
       int i = 0;
@@ -268,8 +311,9 @@ public final class WorldLyricsRenderer {
          int cw = font.width(ch);
          WorldLyricsRenderer.Glyph gl = new WorldLyricsRenderer.Glyph();
          gl.seq = FormattedCharSequence.forward(ch, Style.EMPTY);
-         gl.w = Math.max(1, cw);
-         gl.x = x + cw / 2.0F;
+         gl.rawW = Math.max(1, cw);
+         gl.w = Math.max(1, Math.round(cw * k));
+         gl.x = (x + cw / 2.0F) * k;
          out.add(gl);
          x += cw;
          i += Character.charCount(cp);
@@ -340,6 +384,8 @@ public final class WorldLyricsRenderer {
          g.fixedYaw = fixedYaw;
          WorldLyricsRenderer.Word w = new WorldLyricsRenderer.Word();
          w.text = src.text;
+         w.adlib = src.adlib;
+         w.rawW = src.rawW;
          w.seq = src.seq;
          w.glyphs = src.glyphs;
          w.w = src.w;
@@ -399,6 +445,12 @@ public final class WorldLyricsRenderer {
       lastPlayer = mc.player;
       lastCam = cam;
       Font font = mc.font;
+      lightX = Double.NaN;
+      dev.lyricfall.model.Track track = dev.lyricfall.media.NowPlaying.current();
+      if (track != null && cfg.worldLyrics && !dev.lyricfall.media.NowPlaying.idle() && !track.id().equals(lastCardId)) {
+         lastCardId = track.id();
+         if (cfg.worldTitleCard) titleCard(track, font);
+      }
       if (takesOver()) {
          drawTrackLyrics(pose, out, font, cam, yaw, cfg, dt, now);
       } else {
@@ -418,6 +470,7 @@ public final class WorldLyricsRenderer {
       }
 
       drawDebris(pose, out, mc.level, cam, cfg, dt);
+      LyricLight.frame(lightX, lightY, lightZ, cfg.worldLight && takesOver() ? cfg.worldLightLevel : 0, dt);
       out.flush();
    }
 
@@ -455,6 +508,7 @@ public final class WorldLyricsRenderer {
       boolean playing = NowPlaying.isPlaying();
       pauseK = playing ? Math.min(1.0F, pauseK + dt / 0.35F) : Math.max(0.0F, pauseK - dt / 0.6F);
       int cur = LrcParser.currentIndex(lines, pos);
+      drawInterlude(pose, out, cam, yaw, cfg, lines, cur, pos - cfg.lyricsShiftMs);
       if (cur < 0) {
          groups.clear();
          scatterLines.clear();
@@ -544,6 +598,15 @@ public final class WorldLyricsRenderer {
    private static void updateStage(Vec3 cam, Vec3 prev, double viewYaw, double viewPitch, HudConfig cfg, float dt) {
       camRot = cfg.worldSmooth ? dev.lyricfall.compat.CameraPos.rotation() : null;
       framePalette = dev.lyricfall.media.CoverColors.current();
+      if (cfg.worldAdaptive) {
+         float dark;
+         try {
+            dark = dev.lyricfall.compat.EnvLight.darkness();
+         } catch (Throwable e) {
+            dark = 0.0F;
+         }
+         envDark += (dark - envDark) * (1.0F - (float)Math.exp(-Math.max(0.001F, dt) * 1.5F));
+      }
       if (!stageInit) {
          stageInit = true;
          recentering = false;
@@ -698,21 +761,7 @@ public final class WorldLyricsRenderer {
             float s = 0.026F * cfg.worldScale * g.sizeK;
             double wall = System.nanoTime() / 1.0E9;
             pose.pushPose();
-            pose.translate((float)(g.px - cam.x), (float)(g.py - cam.y), (float)(g.pz - cam.z));
-            if (camRot != null) {
-               // faces the screen exactly and takes over the camera roll (Do a Barrel Roll)
-               out.rotate(pose, camRot);
-            } else {
-               float face = (float)Math.atan2(cam.x - g.px, cam.z - g.pz);
-               out.rotateY(pose, face);
-               if (cfg.worldSmooth) {
-                  double h = Math.sqrt((cam.x - g.px) * (cam.x - g.px) + (cam.z - g.pz) * (cam.z - g.pz));
-                  out.rotateX(pose, (float)-Math.atan2(cam.y - g.py, h));
-               }
-            }
-            if (cfg.worldBank && bank != 0.0F) {
-               out.rotateZ(pose, bank);
-            }
+            orient(pose, out, g, cam, cfg);
             if (g.scatter) {
                out.rotateZ(pose, g.tilt + 0.05F * (float)Math.sin(wall * 1.1 + g.index * 0.9));
             }
@@ -741,11 +790,12 @@ public final class WorldLyricsRenderer {
                   float bob = (float)Math.sin(wall * 2.2 + g.index * 1.3 + i * 0.7) * 1.3F * bounce;
                   float baseX = w.x;
                   float baseY = w.y + lift - swellLift;
+                  wordFx(g, w, sungNow, baseY, s, cfg, wall);
                   if (!letters) {
                      float p = clamp01((float)tw * speed / 380.0F);
                      float cx = baseX + w.w / 2.0F;
                      int rgb = color(cfg, g, cx, glyphIndex, sungNow, wall);
-                     drawPiece(pose, out, cfg, w.seq, w.w, cx, baseY + bob * easeOutCubic(p), 0.0F, p, w, i, g.index, wall, pulse, rgb, fade, sungNow);
+                     drawPiece(pose, out, cfg, w.seq, w.rawW, cx, baseY + bob * easeOutCubic(p), 0.0F, p, w, i, g.index, wall, pulse, rgb, fade, sungNow);
                      glyphIndex += w.glyphs.size();
                   } else {
                      int n = w.glyphs.size();
@@ -759,7 +809,7 @@ public final class WorldLyricsRenderer {
                            float cx = baseX + gl.x;
                            float letterBob = (float)Math.sin(wall * 2.2 + g.index * 1.3 + i * 0.7 + j * 0.25) * 1.3F * bounce;
                            int rgb = color(cfg, g, cx, glyphIndex + j, lit, wall);
-                           drawPiece(pose, out, cfg, gl.seq, gl.w, cx, baseY + letterBob * easeOutCubic(p), 0.0F, p, w, j, g.index * 31 + i, wall, pulse, rgb, fade, lit);
+                           drawPiece(pose, out, cfg, gl.seq, gl.rawW, cx, baseY + letterBob * easeOutCubic(p), 0.0F, p, w, j, g.index * 31 + i, wall, pulse, rgb, fade, lit);
                         }
                      }
 
@@ -770,6 +820,151 @@ public final class WorldLyricsRenderer {
 
             pose.popPose();
          }
+      }
+   }
+
+   /** Moves the pose to the group and turns it towards the viewer; also remembers the axes for world positions. */
+   private static void orient(PoseStack pose, WorldText out, WorldLyricsRenderer.Group g, Vec3 cam, HudConfig cfg) {
+      pose.translate((float)(g.px - cam.x), (float)(g.py - cam.y), (float)(g.pz - cam.z));
+      if (camRot != null) {
+         // faces the screen exactly and takes over the camera roll (Do a Barrel Roll)
+         out.rotate(pose, camRot);
+         org.joml.Vector3f a = camRot.transform(new org.joml.Vector3f(1.0F, 0.0F, 0.0F));
+         org.joml.Vector3f b = camRot.transform(new org.joml.Vector3f(0.0F, 1.0F, 0.0F));
+         axX = a.x; axY = a.y; axZ = a.z;
+         ayX = b.x; ayY = b.y; ayZ = b.z;
+      } else {
+         float face = (float)Math.atan2(cam.x - g.px, cam.z - g.pz);
+         out.rotateY(pose, face);
+         axX = Math.cos(face); axY = 0.0; axZ = -Math.sin(face);
+         ayX = 0.0; ayY = 1.0; ayZ = 0.0;
+         if (cfg.worldSmooth) {
+            double h = Math.sqrt((cam.x - g.px) * (cam.x - g.px) + (cam.z - g.pz) * (cam.z - g.pz));
+            out.rotateX(pose, (float)-Math.atan2(cam.y - g.py, h));
+         }
+      }
+      if (cfg.worldBank && bank != 0.0F) {
+         out.rotateZ(pose, bank);
+      }
+   }
+
+   /** World position of a point given in the group's text units (before the -s y flip). */
+   private static double wx(WorldLyricsRenderer.Group g, float x, float y, float s) { return g.px + axX * x * s - ayX * y * s; }
+   private static double wy(WorldLyricsRenderer.Group g, float x, float y, float s) { return g.py + axY * x * s - ayY * y * s; }
+   private static double wz(WorldLyricsRenderer.Group g, float x, float y, float s) { return g.pz + axZ * x * s - ayZ * y * s; }
+
+   /** Particles when a word starts and the light source on the word being sung. */
+   private static void wordFx(WorldLyricsRenderer.Group g, WorldLyricsRenderer.Word w, boolean sungNow, float baseY, float s, HudConfig cfg, double wall) {
+      if (!g.timed) return;
+      float cx = w.x + w.w / 2.0F;
+      if (!w.sparked) {
+         w.sparked = true;
+         if (cfg.worldParticles != HudConfig.WorldParticles.OFF && !w.adlib) {
+            int n = 2 + (w.durRel >= 750L && cfg.worldSwell ? 2 : 0);
+            float hue = (float)((g.index * 0.13 + w.x * 0.004) % 1.0);
+            try {
+               dev.lyricfall.compat.Particles.burst(cfg.worldParticles, wx(g, cx, baseY, s), wy(g, cx, baseY, s), wz(g, cx, baseY, s), n, Math.abs(hue));
+            } catch (Throwable ignored) {
+            }
+         }
+      }
+      if (sungNow && !w.adlib) {
+         lightX = wx(g, cx, baseY, s);
+         lightY = wy(g, cx, baseY, s);
+         lightZ = wz(g, cx, baseY, s);
+      }
+   }
+
+   /**
+    * Instrumental break: three dots that breathe and fill up one by one until the singing comes back,
+    * then pop away (like Apple Music). Also shown before the first line of a song.
+    */
+   private static void drawInterlude(PoseStack pose, WorldText out, Vec3 cam, double yaw, HudConfig cfg, List<LyricLine> lines, int cur, long spos) {
+      if (!cfg.worldInterlude || lines.isEmpty()) return;
+      int next = -1;
+      for (int i = Math.max(0, cur + 1); i < lines.size(); i++) {
+         LyricLine l = lines.get(i);
+         if (l.timeMs() != Long.MAX_VALUE && l.text() != null && !l.text().isBlank()) { next = i; break; }
+      }
+      if (next < 0) return;
+      long gapStart;
+      if (cur < 0) {
+         gapStart = 0L;
+      } else {
+         LyricLine line = lines.get(cur);
+         if (line.text() == null || line.text().isBlank()) {
+            gapStart = line.timeMs();
+         } else {
+            dev.lyricfall.lyrics.WordTimings wt = dev.lyricfall.lyrics.WordTimings.of(line, cur + 1 < lines.size() ? lines.get(cur + 1) : null);
+            gapStart = wt == null || wt.end.length == 0 ? line.timeMs() + 1500L : wt.end[wt.end.length - 1];
+         }
+      }
+      long gapEnd = lines.get(next).timeMs();
+      if (gapEnd - gapStart < INTERLUDE_MIN_MS) return;
+      long from = gapStart + (cur < 0 ? 600L : 1700L), to = gapEnd - 150L;
+      if (spos < from || spos > to) return;
+
+      float env = clamp01((spos - from) / 500.0F) * clamp01((to - spos) / 220.0F);
+      float prog = clamp01((float)(spos - from) / Math.max(1L, to - from));
+      if (dots == null) {
+         dots = new WorldLyricsRenderer.Group(-7000, true, 0L, false);
+         WorldLyricsRenderer.Word d = new WorldLyricsRenderer.Word();
+         d.text = "\u2022";
+         d.seq = DOT;
+         d.durRel = 400L;
+         dots.words.add(d);
+         dots.minX = -9.0F;
+         dots.maxX = 9.0F;
+      }
+      Font font = Minecraft.getInstance().font;
+      int dotW = Math.max(1, font.width("\u2022"));
+      boolean smooth = cfg.worldSmooth;
+      Vec3 t = smooth ? stageTarget(dots, cam, cfg) : target(dots, cam, yaw, cfg);
+      dots.px = t.x;
+      dots.py = t.y;
+      dots.pz = t.z;
+      dots.placed = true;
+      seeNow = cfg.worldSeeThrough || occluded(dots, cam);
+      double wall = System.nanoTime() / 1.0E9;
+      float s = 0.026F * cfg.worldScale * 1.3F;
+      pose.pushPose();
+      orient(pose, out, dots, cam, cfg);
+      pose.scale(s, -s, s);
+      for (int i = 0; i < 3; i++) {
+         float li = clamp01(prog * 3.0F - i);
+         float breath = 1.0F + 0.13F * (float)Math.sin(wall * 3.0 - i * 0.7);
+         float k = (0.72F + 0.38F * li) * breath;
+         if (prog > 0.94F) k *= 1.0F + (prog - 0.94F) / 0.06F * 0.45F;   // swells right before the voice returns
+         float x = (i - 1) * 9.0F;
+         int rgb = color(cfg, dots, x, i, li >= 1.0F, wall);
+         drawPiece(pose, out, cfg, DOT, dotW, x, 0.0F, 0.0F, 1.0F, dots.words.get(0), i, -7000, wall, k, rgb,
+                   env * (0.35F + 0.65F * li), li >= 1.0F);
+      }
+      pose.popPose();
+   }
+
+   /** Title and artist float in for a few seconds when a new song starts, then leave like a sung line. */
+   private static void titleCard(dev.lyricfall.model.Track t, Font font) {
+      extras.removeIf(gx -> gx.index == -3000 || gx.index == -3001);
+      String title = t.title() == null ? "" : t.title().trim();
+      String artist = t.artist() == null ? "" : t.artist().trim();
+      if (title.isEmpty()) return;
+      WorldLyricsRenderer.Group a = new WorldLyricsRenderer.Group(-3000, true, 0L, false);
+      a.vert = 1.05F;
+      a.sizeK = 1.35F;
+      a.hold = 2800L;
+      addWords(a, font, title, 120L);
+      a.lateral = 0.0F;
+      extras.add(a);
+      if (!artist.isEmpty()) {
+         WorldLyricsRenderer.Group b = new WorldLyricsRenderer.Group(-3001, true, 0L, false);
+         b.vert = 0.66F;
+         b.sizeK = 0.78F;
+         b.hold = 2600L;
+         addWords(b, font, artist, 90L);
+         b.lateral = 0.0F;
+         b.wallStart += 350_000_000L;
+         extras.add(b);
       }
    }
 
@@ -839,6 +1034,13 @@ public final class WorldLyricsRenderer {
             }
       }
 
+      if (w.adlib) {
+         // background voice: smaller, paler, a touch lighter
+         k *= ADLIB_K;
+         alpha *= 0.7F;
+         rgb = lerpRgb(rgb, 16777215, 0.3F);
+      }
+
       if (!(alpha < 0.04F) && !(k <= 0.01F)) {
          pose.pushPose();
          pose.translate(cx, cy, cz);
@@ -857,8 +1059,9 @@ public final class WorldLyricsRenderer {
             // soft glow: two rings of faint copies around the glyph, brightest close in
             float r = cfg.worldGlowSize / 100.0F;
             int glowRgb = lerpRgb(rgb, 16777215, 0.2F);
-            int inner = Math.round(alpha * cfg.worldGlowStrength * 0.9F);
-            int outer = Math.round(alpha * cfg.worldGlowStrength * 0.4F);
+            float strength = cfg.worldGlowStrength * (cfg.worldAdaptive ? 0.8F + 0.75F * envDark : 1.0F);
+            int inner = Math.min(255, Math.round(alpha * strength * 0.9F));
+            int outer = Math.min(255, Math.round(alpha * strength * 0.4F));
 
             for (int d = 0; d < 8; d++) {
                double a = d * Math.PI / 4.0;
@@ -872,7 +1075,7 @@ public final class WorldLyricsRenderer {
          if (cfg.worldOutline) {
             // thin, slightly tinted dark rim: keeps pastel text readable on snow, sand and bright sky
             int rim = lerpRgb(rgb, 0x0A0A12, 0.86F);
-            int ra = Math.round(alpha * 150.0F);
+            int ra = Math.round(alpha * 150.0F * (cfg.worldAdaptive ? 1.0F - 0.55F * envDark : 1.0F));
             if (ra >= 5) {
                for (int d = 0; d < 4; d++) {
                   float ox = d < 2 ? -0.55F : 0.55F;
@@ -915,8 +1118,8 @@ public final class WorldLyricsRenderer {
                float ly = w.y + g.liftCur;
                WorldLyricsRenderer.Debris d = new WorldLyricsRenderer.Debris();
                d.seq = gl.seq;
-               d.w = gl.w;
-               d.s = s;
+               d.w = gl.rawW;
+               d.s = w.adlib ? s * ADLIB_K : s;
                d.mode = cfg.worldExit;
                d.x = g.px + cos * lx * s;
                d.y = g.py - ly * s;
@@ -1296,10 +1499,14 @@ public final class WorldLyricsRenderer {
       FormattedCharSequence seq;
       float x;
       int w;
+      int rawW;
    }
 
    private static final class Word {
       String text;
+      boolean adlib;
+      boolean sparked;
+      int rawW;
       FormattedCharSequence seq;
       List<WorldLyricsRenderer.Glyph> glyphs = List.of();
       long startRel;
