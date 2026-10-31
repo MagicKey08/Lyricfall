@@ -64,3 +64,21 @@ jobs:
           mkdir -p out
           javac -d out .github/smoke/dev/lyricfall/LyricfallMod.java src/common/java/dev/lyricfall/media/SystemMedia.java .github/smoke/Smoke.java
           java -cp out Smoke
+
+  lyrics-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Lyrics lookup test
+        shell: bash
+        run: |
+          curl -sSL -o gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar
+          S=src/common/java/dev/lyricfall
+          mkdir -p out
+          javac -cp gson.jar -d out .github/lyricstest/LyricsTest.java .github/lyricstest/dev/lyricfall/util/T.java .github/lyricstest/dev/lyricfall/LyricfallMod.java \
+            $S/Env.java $S/lyrics/*.java $S/net/*.java $S/model/*.java $S/config/*.java $S/util/Json.java
+          java -cp "out;gson.jar" LyricsTest
