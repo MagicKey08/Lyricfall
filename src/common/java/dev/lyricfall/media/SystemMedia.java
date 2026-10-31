@@ -88,7 +88,7 @@ public final class SystemMedia {
                             continue;
                         }
                         if (line.startsWith("ART")) {
-                            art(line.substring(3));
+                            readArt(line.substring(3));
                             continue;
                         }
                         if (!line.startsWith("OK")) continue;
@@ -120,7 +120,7 @@ public final class SystemMedia {
 
     public static Art art(String app) { return app == null ? null : ART.get(app); }
 
-    private static void art(String body) {
+    private static void readArt(String body) {
         String[] f = body.split(String.valueOf(FIELD), -1);
         if (f.length < 4) return;
         try {
