@@ -166,6 +166,7 @@ public final class SystemMedia {
      */
     private static final String SCRIPT = String.join("\n",
             "$ErrorActionPreference = 'Stop'",
+            "$ProgressPreference = 'SilentlyContinue'",
             "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false",
             "$parent = __PARENT__",
             "$US = [char]0x1F; $RS = [char]0x1E",
