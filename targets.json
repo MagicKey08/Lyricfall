@@ -1,0 +1,17 @@
+[
+  {
+    "mc": "26.3",
+    "label": "26.3",
+    "gen": "g263",
+    "game": "gui",
+    "java": 25,
+    "remap": false,
+    "fapi": "0.163.0+26.3",
+    "neo": "26.3.0.76",
+    "nloader": false,
+    "loader": "fabric",
+    "name": "fabric-26.3",
+    "range": ">=26.3- <26.4-",
+    "nver": "[26.3,26.4)"
+  }
+]
