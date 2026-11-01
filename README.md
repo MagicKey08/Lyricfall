@@ -58,7 +58,7 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 
 ## Shader (Iris, Complementary, BSL usw.)
 
-Mit aktivem Shaderpack legt Lyricfall den Text automatisch über das fertige Bild, genau an die Stelle, wo er in der Welt stehen würde. Der Shader kann ihn so nicht abdunkeln, vernebeln, mit Bloom überstrahlen oder durch TAA verschmieren. Einstellbar unter "In der Welt" bei "Zeichnen" (Automatisch, In der Welt, Über dem Shader). Einziger Unterschied: über dem Shader ist der Text immer sichtbar, auch hinter Wänden.
+Mit aktivem Shaderpack legt Lyricfall den Text automatisch über das fertige Bild, genau an die Stelle, wo er in der Welt stehen würde. Der Shader kann ihn so nicht abdunkeln, vernebeln, mit Bloom überstrahlen oder durch TAA verschmieren. Einstellbar unter "In der Welt" bei "Zeichnen" (Automatisch, In der Welt, Über dem Shader). Einziger Unterschied: über dem Shader ist der Text immer sichtbar, auch hinter Wänden. Die Lyrics bleiben auch mit F1 sichtbar, nur die Untertitel auf dem Bildschirm verschwinden mit dem HUD.
 
 ## Woher weiß die Mod, was läuft?
 

@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
@@ -26,12 +27,13 @@ public final class LyricfallFabric implements ClientModInitializer {
 
         for (KeyMapping km : Hotkeys.mappings()) KeyMappingHelper.registerKeyMapping(km);
 
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(LyricfallMod.MOD_ID, "lyrics"), (graphics, tick) -> {
-            CanvasImpl canvas = new CanvasImpl(graphics);
-            // with a shader pack the world lyrics are drawn here, after the shader, so they stay crisp
-            if (WorldLyricsRenderer.overlayActive()) WorldLyricsRenderer.render(new PoseStack(), new OverlayText(canvas));
-            HudLayers.render(canvas);
+        // With a shader pack the world lyrics are drawn on the HUD, after the shader, so they stay crisp.
+        // Hooked in front of the sleep overlay: Fabric draws that slot even when the HUD is hidden with F1,
+        // so the lyrics stay while flying around for screenshots and clips.
+        HudElementRegistry.attachElementBefore(VanillaHudElements.SLEEP, Identifier.fromNamespaceAndPath(LyricfallMod.MOD_ID, "world_lyrics"), (graphics, tick) -> {
+            if (WorldLyricsRenderer.overlayActive()) WorldLyricsRenderer.render(new PoseStack(), new OverlayText(new CanvasImpl(graphics)));
         });
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(LyricfallMod.MOD_ID, "lyrics"), (graphics, tick) -> HudLayers.render(new CanvasImpl(graphics)));
         LevelRenderEvents.COLLECT_SUBMITS.register(ctx -> {
             if (!WorldLyricsRenderer.overlayActive()) WorldLyricsRenderer.render(ctx.poseStack(), new WorldTextImpl(ctx.submitNodeCollector()));
         });
