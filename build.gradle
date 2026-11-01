@@ -1,0 +1,9 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+}
+
+tasks.register('buildAll') {
+    group = 'build'
+    description = 'Builds every target; jars end up in dist/'
+    dependsOn subprojects.collect { ":${it.name}:build" }
+}

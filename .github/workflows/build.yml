@@ -1,0 +1,84 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew buildAll --stacktrace
+
+      - name: Inspect jar
+        run: |
+          J=$(ls dist/*.jar)
+          echo "::notice::jar $(basename $J) $(stat -c %s $J) bytes, $(unzip -l $J | grep -c '\.class$') classes"
+          echo "::notice::packages $(unzip -l $J | awk '{print $4}' | grep '\.class$' | xargs -n1 dirname | sort -u | tr '\n' ' ')"
+          echo "::notice::resources $(unzip -l $J | awk '{print $4}' | grep -v '\.class$' | grep -v '/$' | tr '\n' ' ')"
+          echo "::notice::modjson $(unzip -p $J fabric.mod.json | tr -d '\n' | tr -s ' ')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lyricfall-jar
+          path: dist/*.jar
+          if-no-files-found: error
+
+      - name: Release
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.jar
+
+  windows-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Media helper smoke test
+        shell: bash
+        run: |
+          mkdir -p out
+          javac -d out .github/smoke/dev/lyricfall/LyricfallMod.java src/common/java/dev/lyricfall/media/SystemMedia.java .github/smoke/Smoke.java
+          java -cp out Smoke
+
+  lyrics-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Lyrics lookup test
+        shell: bash
+        run: |
+          curl -sSL -o gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar
+          S=src/common/java/dev/lyricfall
+          mkdir -p out
+          javac -cp gson.jar -d out .github/lyricstest/LyricsTest.java .github/lyricstest/dev/lyricfall/util/T.java .github/lyricstest/dev/lyricfall/LyricfallMod.java \
+            $S/Env.java $S/lyrics/*.java $S/net/*.java $S/model/*.java $S/config/*.java $S/util/Json.java
+          java -cp "out;gson.jar" LyricsTest

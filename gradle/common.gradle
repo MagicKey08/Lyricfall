@@ -1,0 +1,51 @@
+// Shared target setup: sources, Java, file name. Target parameters live in targets.json.
+apply plugin: 'java'
+
+def t = new groovy.json.JsonSlurper().parse(rootProject.file('targets.json')).find { it.name == project.name }
+ext.target = t
+
+group = 'dev.lyricfall'
+version = "${mod_version}-mc${t.label}-${t.loader}"
+base.archivesName = 'lyricfall'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(t.java)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = t.java
+}
+
+sourceSets.main {
+    java.srcDirs = [
+        'src/common/java',
+        "src/compat/${t.gen}/java",
+        "src/game/${t.game}/java",
+        "src/${t.loader}/${t.gen}/java",
+    ].collect { rootProject.file(it) }
+    resources.srcDirs = [
+        'src/common/resources',
+        "src/${t.loader}/resources",
+    ].collect { rootProject.file(it) }
+}
+
+// Licenses ship with the binary (MIT notices of Overtone and SpotifyMusicMod are required)
+tasks.named('jar') {
+    from(rootProject.file('LICENSE'))
+    from(rootProject.file('THIRD_PARTY_NOTICES.txt'))
+    from(rootProject.file('LICENSE-SpotifyMusicMod.txt'))
+}
+
+// The finished jar is copied to dist/.
+ext.registerDist = { Object jarTask ->
+    def copy = tasks.register('copyToDist', Copy) {
+        from(jarTask)
+        into rootProject.layout.projectDirectory.dir('dist')
+    }
+    tasks.named('build') { finalizedBy copy }
+}

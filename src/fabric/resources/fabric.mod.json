@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "lyricfall",
+  "version": "${version}",
+  "name": "Lyricfall",
+  "description": "Synced lyrics of the song you play in Spotify fly through your Minecraft world, word by word. Client side only, works on any server. Lyrics-only fork of Overtone.",
+  "authors": [
+    "MagicKey08"
+  ],
+  "contributors": [
+    "chifir4ik (Overtone)",
+    "PabJlo (Overtone)",
+    "Kartonek (SpotifyMusicMod)"
+  ],
+  "contact": {
+    "sources": "https://github.com/MagicKey08/Lyricfall",
+    "issues": "https://github.com/MagicKey08/Lyricfall/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/lyricfall/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.lyricfall.fabric.LyricfallFabric"
+    ],
+    "lambdynlights:initializer": [
+      "dev.lyricfall.fabric.LyricfallLights"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_range}",
+    "java": ">=${java}"
+  },
+  "suggests": {
+    "lambdynlights": "*",
+    "do_a_barrel_roll": "*"
+  },
+  "custom": {
+    "credits": {
+      "based_on": "Overtone by chifir4ik and PabJlo (MIT): https://github.com/chifir4ik/Overtone",
+      "design": "SpotifyMusicMod by Kart-Modding (MIT): https://github.com/Kart-Modding/SpotifyMusicMod"
+    }
+  }
+}

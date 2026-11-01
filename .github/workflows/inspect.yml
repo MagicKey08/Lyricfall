@@ -1,0 +1,45 @@
+name: Inspect Minecraft classes
+on:
+  push:
+    paths: [".github/workflows/inspect.yml"]
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Resolve Minecraft
+        run: |
+          chmod +x gradlew
+          ./gradlew :fabric-26.3:compileJava -q || true
+      - name: Decompile
+        run: |
+          curl -sSL -o cfr.jar https://repo1.maven.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar
+          mkdir -p out
+          JAR=""
+          for j in $(find ~/.gradle .gradle targets -name "*.jar" -size +5M 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/client/gui/Hud.class"; then JAR="$j"; break; fi
+          done
+          echo "jar: $JAR" > out/log.txt
+          find ~/.gradle .gradle -name "*.jar" -size +5M 2>/dev/null | grep -i minecraft >> out/log.txt
+          mkdir -p cls && cd cls && unzip -q -o "$JAR" 'net/minecraft/client/gui/Hud*.class' 'net/minecraft/client/gui/Gui.class' 'net/minecraft/client/renderer/GameRenderer.class' || true
+          cd ..
+          for f in cls/net/minecraft/client/gui/Hud.class cls/net/minecraft/client/gui/Gui.class cls/net/minecraft/client/renderer/GameRenderer.class; do
+            java -jar cfr.jar "$f" --extraclasspath "$JAR" > "out/$(basename $f .class).java" 2>>out/log.txt || true
+          done
+          ls -la out >> out/log.txt
+      - name: Publish
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan inspect
+          git rm -rq --cached . > /dev/null 2>&1 || true
+          git add -f out
+          git commit -qm "decompiled classes"
+          git push -f origin inspect

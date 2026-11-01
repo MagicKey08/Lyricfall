@@ -1,0 +1,15 @@
+Third-party components used by Lyricfall
+========================================
+
+1) Overtone — Copyright (c) 2026 chifir4ik, PabJlo
+   https://github.com/chifir4ik/Overtone (fork used: https://github.com/evgenii-sorokin-percent/Overtone)
+   License: MIT (see LICENSE). Lyricfall is a lyrics-only fork: lyric sources,
+   flying in-world lyrics, on-screen subtitles/karaoke and the settings window
+   come from Overtone. The music player, providers, audio decoders, visualizer,
+   cinematic camera and Discord status were removed. Song detection via the
+   Windows media overlay was added.
+
+2) SpotifyMusicMod — Copyright (c) 2026 Kartonek (Kart-Modding)
+   https://github.com/Kart-Modding/SpotifyMusicMod
+   License: MIT. Full text and copyright notice: LICENSE-SpotifyMusicMod.txt
+   Used in: dev.lyricfall.compat.Canvas (render layer) and as a design reference.
