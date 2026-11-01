@@ -17,7 +17,7 @@ public final class CameraPos {
     private static boolean resolved, rotationResolved;
 
     /** The main camera; method names changed between versions, so it is looked up by type. */
-    private static Camera camera() {
+    public static Camera camera() {
         GameRenderer renderer = Minecraft.getInstance().gameRenderer;
         if (renderer == null) return null;
         try {

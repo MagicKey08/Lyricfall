@@ -23,7 +23,7 @@ public final class Hotkeys {
 
     public enum Action {
         WORLD_LYRICS("world_lyrics", InputConstants.KEY_J),
-        HUD_SETTINGS("hud_settings", InputConstants.KEY_K),
+        HUD_SETTINGS("hud_settings", InputConstants.KEY_U),
         TOGGLE_HUD("toggle_hud", InputConstants.UNKNOWN.getValue()),
         RELOAD("reload", InputConstants.UNKNOWN.getValue());
 
@@ -80,6 +80,23 @@ public final class Hotkeys {
                 NowPlaying.reload();
                 WorldLyricsRenderer.toast(T.get("toast.reload"));
             }
+        }
+    }
+
+    /**
+     * Iris uses K to switch shaders on and off. Older Lyricfall versions opened the settings with K too, so both
+     * fired at once. Moves our key to U one time; if the player puts it back on K later, that is respected.
+     */
+    public static void moveOffIrisKey() {
+        dev.lyricfall.config.PlayerConfig pc = dev.lyricfall.config.PlayerConfig.get();
+        if (pc.irisKeyMoved) return;
+        pc.irisKeyMoved = true;
+        pc.save();
+        KeyMapping km = MAPPINGS[Action.HUD_SETTINGS.ordinal()];
+        if (km != null && km.saveString().equals(Keys.key(InputConstants.KEY_K).getName())) {
+            km.setKey(Keys.key(InputConstants.KEY_U));
+            KeyMapping.resetMapping();
+            save();
         }
     }
 

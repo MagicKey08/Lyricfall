@@ -46,6 +46,8 @@ public final class HudConfig {
     public enum LyricsEnter { SLIDE, RISE, POP, TYPE }
     public enum WorldGlow { OFF, SUNG, ALL }
     /** Particles that burst from every word as it is sung. AUTO picks one that suits the dimension. */
+    /** WORLD: real 3D text. OVERLAY: projected onto the screen after shaders (crisp with Iris). AUTO: overlay when a shader pack is on. */
+    public enum RenderMode { AUTO, WORLD, OVERLAY }
     public enum WorldParticles { OFF, AUTO, GLOW, NOTES, SPARKS, SOUL, ASH, SNOW }
     /** Ready made looks; CUSTOM as soon as anything is changed by hand. */
     public enum WorldPreset { CUSTOM, CINEMA, MIDNIGHT, HYPE, CLEAN, DREAM, CYBER, GRAVITY, FLIGHT }
@@ -144,6 +146,7 @@ public final class HudConfig {
     public boolean worldLight = true;
     public int worldLightLevel = 10;
     public WorldPreset worldPreset = WorldPreset.CUSTOM;
+    public RenderMode worldRender = RenderMode.AUTO;
     /** Schema of this file: 1 = new color system (cover colors, outline instead of shadow) applied once. */
     public int displayVersion = 0;
     public WorldGlow worldGlow = WorldGlow.SUNG;
@@ -221,6 +224,7 @@ public final class HudConfig {
         if (worldGlow == null) worldGlow = d.worldGlow;
         if (worldParticles == null) worldParticles = d.worldParticles;
         if (worldPreset == null) worldPreset = d.worldPreset;
+        if (worldRender == null) worldRender = d.worldRender;
         worldLightLevel = Math.max(1, Math.min(15, worldLightLevel));
         worldLinger = Math.max(1, Math.min(20, worldLinger));
         worldLetterMs = Math.max(5, Math.min(150, worldLetterMs));

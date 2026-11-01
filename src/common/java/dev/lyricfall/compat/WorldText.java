@@ -14,6 +14,9 @@ public abstract class WorldText {
     /** Наклон вокруг горизонтальной оси: буквы, лежащие на блоках, повёрнуты плашмя. */
     public void rotateX(PoseStack pose, float rad) {}
 
+    /** True when the text is projected onto the screen after the shader instead of living in the world. */
+    public boolean overlay() { return false; }
+
     /** Full rotation, e.g. the camera orientation for text that faces the screen. */
     public void rotate(PoseStack pose, Quaternionf q) {}
 

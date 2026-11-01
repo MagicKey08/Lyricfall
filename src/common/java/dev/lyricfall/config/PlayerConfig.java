@@ -31,6 +31,9 @@ public final class PlayerConfig {
     /** Settings schema: 1 = NetEase and KuGou switched on once for everyone (LRCLIB alone was not enough). */
     public int settingsVersion = 0;
 
+    /** The settings key was moved off K (Iris shader toggle) once. */
+    public boolean irisKeyMoved = false;
+
     /** 0..3: how much accent is mixed into the window background (0 / 5 / 10 / 15 %). */
     public int tint = 1;
     public int windowOpacity = 100;

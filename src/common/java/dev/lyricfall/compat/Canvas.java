@@ -40,6 +40,7 @@ public abstract class Canvas {
     public abstract void fill(int x1, int y1, int x2, int y2, int argb);
     public abstract void text(Font font, String value, int x, int y, int argb, boolean shadow);
     public abstract void text(Font font, FormattedCharSequence value, int x, int y, int argb);
+    public abstract void textSeq(Font font, FormattedCharSequence value, int x, int y, int argb, boolean shadow);
     public abstract void texture(Tex texture, int x, int y, int width, int height, int textureSize, float alpha);
 
     public abstract void pushMatrix();

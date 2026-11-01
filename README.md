@@ -56,6 +56,10 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 * Eigene Lyrics: `Künstler - Titel.lrc` (oder `.txt`) in `config/lyricfall/lyrics` legen, die haben immer Vorrang
 * Regler "Lyrics verschieben", falls die Lyrics zu früh oder zu spät kommen
 
+## Shader (Iris, Complementary, BSL usw.)
+
+Mit aktivem Shaderpack legt Lyricfall den Text automatisch über das fertige Bild, genau an die Stelle, wo er in der Welt stehen würde. Der Shader kann ihn so nicht abdunkeln, vernebeln, mit Bloom überstrahlen oder durch TAA verschmieren. Einstellbar unter "In der Welt" bei "Zeichnen" (Automatisch, In der Welt, Über dem Shader). Einziger Unterschied: über dem Shader ist der Text immer sichtbar, auch hinter Wänden.
+
 ## Woher weiß die Mod, was läuft?
 
 Über die Windows-Medienanzeige (die Box, die beim Lautstärke ändern erscheint). Spotify meldet dort Titel, Künstler, Position und ob gerade gespielt wird. Dafür braucht es **kein Spotify-Login und kein Premium**, nur die Spotify Desktop-App unter Windows 10 oder 11. In den Einstellungen kannst du auch andere Apps erlauben (z.B. YouTube im Browser).
@@ -71,7 +75,7 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 | Taste | Aktion |
 |---|---|
 | `J` | Fliegende Lyrics an / aus |
-| `K` | Einstellungen |
+| `U` | Einstellungen (früher K, das benutzt Iris zum Shader an/aus) |
 | frei | Bildschirm-Lyrics an / aus |
 | frei | Lyrics für den aktuellen Song neu suchen |
 

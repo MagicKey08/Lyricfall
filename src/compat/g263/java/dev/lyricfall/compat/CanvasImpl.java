@@ -41,6 +41,11 @@ public final class CanvasImpl extends Canvas {
                 width, height, textureSize, textureSize, textureSize, textureSize, tint);
     }
 
+    @Override
+    public void textSeq(Font font, FormattedCharSequence value, int x, int y, int argb, boolean shadow) {
+        ctx.text(font, value, x, y, argb, shadow);
+    }
+
     @Override public void pushMatrix() { ctx.pose().pushMatrix(); }
     @Override public void translate(float x, float y) { ctx.pose().translate(x, y); }
     @Override public void scale(float x, float y) { ctx.pose().scale(x, y); }

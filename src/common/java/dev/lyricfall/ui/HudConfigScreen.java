@@ -156,6 +156,7 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(new PresetRow());
                 rows.add(toggle("world_enabled", () -> c.worldLyrics, v -> c.worldLyrics = v));
                 rows.add(toggle("world_with_hud", () -> c.lyricsWithWorld, v -> c.lyricsWithWorld = v));
+                rows.add(new RenderModeRow());
                 rows.add(choice("world_mode", () -> c.worldMode, v -> c.worldMode = v));
                 rows.add(choice("follow", () -> c.worldFollowStyle, v -> c.worldFollowStyle = v));
                 rows.add(choice("word_layout", () -> c.worldLayout, v -> c.worldLayout = v));
@@ -531,6 +532,32 @@ public class HudConfigScreen extends ModScreen {
             dev.lyricfall.util.Browser.openFolder(dir);
         } catch (Exception e) {
             LyricfallMod.LOGGER.warn("Cannot open lyrics folder: {}", e.toString());
+        }
+    }
+
+    /** Render mode plus what it currently resolves to, so it is clear whether the shader overlay is in use. */
+    private final class RenderModeRow extends Row {
+        RenderModeRow() { super("world_render", 24); }
+
+        @Override void draw(boolean hover) {
+            HudConfig c = cfg();
+            int pillW = Math.min(150, w / 2 + 10);
+            String now = T.get(WorldLyricsRenderer.overlayActive() ? "render_now.overlay" : "render_now.world");
+            label(T.get("set.world_render") + "  " + now, w - pillW - 8);
+            int sx = x + w - pillW, sy = y + 2;
+            PlayerTheme.rrect(g(), sx, sy, pillW, 20, Math.min(th.radius + 1, 10), hover ? th.hover : th.trackBg);
+            String v = font.plainSubstrByWidth(HudConfig.label(c.worldRender), pillW - 26);
+            g().text(font, v, sx + (pillW - font.width(v)) / 2, sy + 6, PlayerTheme.TEXT_MAIN);
+            PlayerTheme.tri(g(), sx + 6, sy + 10, 4, 7, false, hover ? th.accent : PlayerTheme.TEXT_DIM);
+            PlayerTheme.tri(g(), sx + pillW - 10, sy + 10, 4, 7, true, hover ? th.accent : PlayerTheme.TEXT_DIM);
+        }
+
+        @Override boolean press(int button) {
+            HudConfig c = cfg();
+            int pillW = Math.min(150, w / 2 + 10), sx = x + w - pillW;
+            c.worldRender = mouseX >= sx && mouseX < sx + pillW / 2 ? HudConfig.prev(c.worldRender) : HudConfig.next(c.worldRender);
+            WorldLyricsRenderer.demo();
+            return false;
         }
     }
 

@@ -93,6 +93,12 @@ public final class WorldLyricsRenderer {
       return takesOver() && !HudConfig.get().lyricsWithWorld;
    }
 
+   /** Draw the world lyrics as a screen overlay this frame (shader pack on, or forced in the settings). */
+   public static boolean overlayActive() {
+      HudConfig.RenderMode m = HudConfig.get().worldRender;
+      return m == HudConfig.RenderMode.OVERLAY || m == HudConfig.RenderMode.AUTO && dev.lyricfall.util.Shaders.active();
+   }
+
    public static boolean takesOver() {
       if (!HudConfig.get().worldLyrics) {
          return false;
@@ -1088,7 +1094,7 @@ public final class WorldLyricsRenderer {
          int argb = Math.round(alpha * 255.0F) << 24 | rgb & 16777215;
          // Без глубины текст «сквозь блоки» затирается полупрозрачными слоями (вода, портал, листва), поэтому
          // видимую часть сначала рисуем обычным текстом: он пишет глубину и защищает её.
-         if (seeNow) {
+         if (seeNow && !out.overlay()) {
             out.text(pose, x0, -4.5F, seq, false, false, argb);
          }
 
