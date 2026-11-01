@@ -48,9 +48,11 @@ public final class HudConfig {
     /** Particles that burst from every word as it is sung. AUTO picks one that suits the dimension. */
     /** WORLD: real 3D text. OVERLAY: projected onto the screen after shaders (crisp with Iris). AUTO: overlay when a shader pack is on. */
     public enum RenderMode { AUTO, WORLD, OVERLAY }
+    /** SCREEN: always faces you exactly (rolls with Do a Barrel Roll). WORLD: a fixed plane in the world, like a sign, that only turns slowly to stay readable. */
+    public enum Facing { SCREEN, WORLD }
     public enum WorldParticles { OFF, AUTO, GLOW, NOTES, SPARKS, SOUL, ASH, SNOW }
     /** Ready made looks; CUSTOM as soon as anything is changed by hand. */
-    public enum WorldPreset { CUSTOM, CINEMA, MIDNIGHT, HYPE, CLEAN, DREAM, CYBER, GRAVITY, FLIGHT }
+    public enum WorldPreset { CUSTOM, WORLD, SKYWAY, CINEMA, MIDNIGHT, HYPE, CLEAN, DREAM, CYBER, GRAVITY, FLIGHT }
     /** Что анимируется по очереди: слова целиком или отдельные буквы. */
     public enum WorldUnit { WORDS, LETTERS }
 
@@ -147,6 +149,12 @@ public final class HudConfig {
     public int worldLightLevel = 10;
     public WorldPreset worldPreset = WorldPreset.CUSTOM;
     public RenderMode worldRender = RenderMode.AUTO;
+    public Facing worldFacing = Facing.SCREEN;
+    /**
+     * Part of the world: unsung words take the light of the place they float in (darker at night and in caves),
+     * distant text fades into the haze, under water it turns blue, and with the shader overlay solid blocks hide it.
+     */
+    public boolean worldImmersive = true;
     /** Schema of this file: 1 = new color system (cover colors, outline instead of shadow) applied once. */
     public int displayVersion = 0;
     public WorldGlow worldGlow = WorldGlow.SUNG;
@@ -225,6 +233,7 @@ public final class HudConfig {
         if (worldParticles == null) worldParticles = d.worldParticles;
         if (worldPreset == null) worldPreset = d.worldPreset;
         if (worldRender == null) worldRender = d.worldRender;
+        if (worldFacing == null) worldFacing = d.worldFacing;
         worldLightLevel = Math.max(1, Math.min(15, worldLightLevel));
         worldLinger = Math.max(1, Math.min(20, worldLinger));
         worldLetterMs = Math.max(5, Math.min(150, worldLetterMs));

@@ -14,6 +14,9 @@ public abstract class WorldText {
     /** Наклон вокруг горизонтальной оси: буквы, лежащие на блоках, повёрнуты плашмя. */
     public void rotateX(PoseStack pose, float rad) {}
 
+    /** Light for the following text in packed form; full brightness by default (sung words glow). */
+    public void setLight(int packed) {}
+
     /** True when the text is projected onto the screen after the shader instead of living in the world. */
     public boolean overlay() { return false; }
 

@@ -27,6 +27,8 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 
 | Preset | Look | Verhalten |
 |---|---|---|
+| Welt | Coverfarben, vom Weltlicht beleuchtet, im Dunst | erscheint vor dir und bleibt wie ein Schild stehen, Hügel und Wände verdecken es, Buchstaben fallen auf den Boden |
+| Luftstraße | Coverfarben, groß, Lichtpartikel | hängt weit vorne auf deiner Flugbahn, du fliegst durch die Zeilen hindurch |
 | Kino | Coverfarben, sanftes Leuchten, keine Partikel | steigt Buchstabe für Buchstabe auf, blendet ruhig aus |
 | Mitternacht | Violett zu Rosé, alles glüht weich, fallende Asche | Wörter fliegen langsam heran und versinken |
 | Hype | Coverfarben, starkes Leuchten, Funken | ploppt groß auf, schwingt stark, zerspringt |
@@ -35,6 +37,12 @@ Lyricfall ist ein abgespeckter Fork von [Overtone](https://github.com/chifir4ik/
 | Cyber | Mint zu Violett, Funken | Glitch-Eingang, wird vom Wind weggeweht |
 | Schwerkraft | Coverfarben | bleibt an der Stelle, fällt herunter und bleibt 8 s auf den Blöcken liegen |
 | Elytra | Coverfarben, groß, Lichtpartikel | folgt dem Blick, weit vorne, neigt sich in Kurven, weht weg |
+
+**Teil der Welt**
+* Ausrichtung "Wie ein Schild": der Text steht fest in der Welt, beim Vorbeigehen und Vorbeifliegen siehst du ihn schräg und in echter Perspektive
+* Nicht gesungene Wörter bekommen das Licht ihrer Umgebung (nachts und in Höhlen dunkler), das gesungene Wort leuchtet selbst
+* Ferner Text verschwimmt im Dunst (Tag, Nacht, Nether, End), unter Wasser wird er blau und neblig
+* Auch über dem Shader verdecken Wände und Hügel die Wörter, Glas und Laub dimmen sie nur
 
 **Extras**
 * Ad-Libs wie "(yeah)" kleiner und blasser, reine Ad-Lib-Zeilen schweben seitlich wie eine zweite Stimme

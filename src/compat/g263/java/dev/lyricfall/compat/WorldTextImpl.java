@@ -11,6 +11,9 @@ public final class WorldTextImpl extends WorldText {
     private static final int LIGHT = 0xF000F0;   // полная яркость независимо от освещения мира
 
     private final SubmitNodeCollector out;
+    private int light = LIGHT;
+
+    @Override public void setLight(int packed) { this.light = packed; }
 
     public WorldTextImpl(SubmitNodeCollector out) { this.out = out; }
 
@@ -18,7 +21,7 @@ public final class WorldTextImpl extends WorldText {
     public void text(PoseStack pose, float x, float y, FormattedCharSequence seq,
                      boolean shadow, boolean seeThrough, int argb) {
         Font.DisplayMode mode = seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
-        out.submitText(pose, x, y, seq, shadow, mode, LIGHT, argb, 0, 0);
+        out.submitText(pose, x, y, seq, shadow, mode, light, argb, 0, 0);
     }
 
     @Override public void rotateY(PoseStack pose, float rad) { pose.mulPose(new Matrix4f().rotationY(rad)); }

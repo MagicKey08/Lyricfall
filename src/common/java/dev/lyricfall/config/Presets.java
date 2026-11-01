@@ -1,6 +1,7 @@
 package dev.lyricfall.config;
 
 import dev.lyricfall.config.HudConfig.Accent;
+import dev.lyricfall.config.HudConfig.Facing;
 import dev.lyricfall.config.HudConfig.FollowStyle;
 import dev.lyricfall.config.HudConfig.WorldAnim;
 import dev.lyricfall.config.HudConfig.WorldColor;
@@ -24,6 +25,33 @@ public final class Presets {
         if (p == WorldPreset.CUSTOM) return;
         base(c);
         switch (p) {
+            case WORLD -> {
+                // part of the world: each line appears ahead of you and stays there like a floating sign,
+                // lit by its surroundings, hidden by hills and walls; the sung word glows, then letters drop onto the ground
+                size(c, 2.2f, 10f, 0.8f);
+                c.worldMode = WorldMode.FIXED;
+                c.worldFacing = Facing.WORLD;
+                c.worldSeeThrough = false;
+                anim(c, WorldAnim.RISE, WorldUnit.LETTERS, 30, 90, 50);
+                exit(c, WorldExit.FALL, 6);
+                colors(c, WorldColor.COVER, Accent.LILAC, Accent.ICE);
+                glow(c, WorldGlow.SUNG, 50, 110);
+                c.worldParticles = WorldParticles.AUTO;
+                c.worldLightLevel = 10;
+            }
+            case SKYWAY -> {
+                // for the elytra: lines hang in the sky far ahead on your path and you fly through them
+                size(c, 2.5f, 14f, 0.3f);
+                c.worldMode = WorldMode.FIXED;
+                c.worldFacing = Facing.WORLD;
+                c.worldSeeThrough = false;
+                anim(c, WorldAnim.FLY, WorldUnit.WORDS, 20, 110, 40);
+                exit(c, WorldExit.WIND, 2);
+                colors(c, WorldColor.COVER, Accent.ICE, Accent.LILAC);
+                glow(c, WorldGlow.SUNG, 70, 120);
+                c.worldParticles = WorldParticles.GLOW;
+                c.worldLightLevel = 12;
+            }
             case CINEMA -> {
                 // calm and premium: like subtitles in a film, colors from the cover
                 size(c, 2.0f, 10f, 1.4f);
@@ -135,6 +163,8 @@ public final class Presets {
         c.worldTitleCard = true;
         c.worldAdaptive = true;
         c.worldLight = true;
+        c.worldFacing = Facing.SCREEN;
+        c.worldImmersive = true;
     }
 
     private static void size(HudConfig c, float scale, float distance, float height) {

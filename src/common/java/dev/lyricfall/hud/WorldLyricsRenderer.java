@@ -85,6 +85,18 @@ public final class WorldLyricsRenderer {
    private static double axX, axY, axZ, ayX, ayY, ayZ;
    private static double lightX = Double.NaN, lightY, lightZ;
 
+   // ---- part of the world ----
+   private static boolean frameOverlay, frameImmersive;
+   private static float frameDt = 0.016F;
+   private static double stageFast;
+   private static String frameFluid = "NONE";
+   private static int frameHaze = 0xBFD2EA;
+   /** Light, haze and fog of the group being drawn right now. */
+   private static int curPacked = dev.lyricfall.compat.EnvLight.FULL;
+   private static float curLightK = 1.0F, curHaze, curFogA = 1.0F;
+   private static int curHazeRgb = 0xBFD2EA;
+   private static final long WORD_OCCLUSION_NS = 120_000_000L;
+
    private WorldLyricsRenderer() {
    }
 
@@ -452,6 +464,17 @@ public final class WorldLyricsRenderer {
       lastCam = cam;
       Font font = mc.font;
       lightX = Double.NaN;
+      frameOverlay = out.overlay();
+      frameImmersive = cfg.worldImmersive;
+      frameDt = dt;
+      if (frameImmersive) {
+         try {
+            frameFluid = dev.lyricfall.compat.EnvLight.fluidAtCamera();
+            frameHaze = dev.lyricfall.compat.EnvLight.hazeColor();
+         } catch (Throwable e) {
+            frameFluid = "NONE";
+         }
+      }
       dev.lyricfall.model.Track track = dev.lyricfall.media.NowPlaying.current();
       if (track != null && cfg.worldLyrics && !dev.lyricfall.media.NowPlaying.idle() && !track.id().equals(lastCardId)) {
          lastCardId = track.id();
@@ -477,6 +500,7 @@ public final class WorldLyricsRenderer {
 
       drawDebris(pose, out, mc.level, cam, cfg, dt);
       LyricLight.frame(lightX, lightY, lightZ, cfg.worldLight && takesOver() ? cfg.worldLightLevel : 0, dt);
+      out.setLight(dev.lyricfall.compat.EnvLight.FULL);
       out.flush();
    }
 
@@ -638,6 +662,7 @@ public final class WorldLyricsRenderer {
 
       // 0 while walking or sprinting, 1 from roughly elytra cruising speed
       double fast = smooth01((speed - 7.0) / 7.0);
+      stageFast = fast;
       boolean screen = cfg.worldFollowStyle == HudConfig.FollowStyle.SCREEN || cfg.worldLayout == HudConfig.WorldLayout.SCATTER;
 
       double d = wrap(viewYaw - stageYaw);
@@ -727,6 +752,12 @@ public final class WorldLyricsRenderer {
             g.pz = t.z;
             g.placed = true;
          } else if (!g.placed) {
+            if (cfg.worldSmooth) {
+               // lines that stay in place appear where you will be: ahead on your path, so you fly through them
+               Vec3 st = stageTarget(g, cam, cfg);
+               double lead = 0.9 * stageFast;
+               t = new Vec3(st.x + velX * lead, st.y + velY * lead * 0.5, st.z + velZ * lead);
+            }
             g.px = t.x;
             g.py = t.y;
             g.pz = t.z;
@@ -764,6 +795,7 @@ public final class WorldLyricsRenderer {
             }
 
             float lift = g.liftCur - 14.0F * easeOutCubic(exit);
+            envFor(g, cam);
             float s = 0.026F * cfg.worldScale * g.sizeK;
             double wall = System.nanoTime() / 1.0E9;
             pose.pushPose();
@@ -832,6 +864,26 @@ public final class WorldLyricsRenderer {
    /** Moves the pose to the group and turns it towards the viewer; also remembers the axes for world positions. */
    private static void orient(PoseStack pose, WorldText out, WorldLyricsRenderer.Group g, Vec3 cam, HudConfig cfg) {
       pose.translate((float)(g.px - cam.x), (float)(g.py - cam.y), (float)(g.pz - cam.z));
+      if (cfg.worldFacing == HudConfig.Facing.WORLD) {
+         // a plane standing in the world like a sign: you see it at an angle and in perspective as you move;
+         // it only turns (slowly) once you get more than 40 degrees to its side, so it never becomes unreadable
+         double toCam = Math.atan2(cam.x - g.px, cam.z - g.pz);
+         if (!g.faceInit) {
+            g.faceInit = true;
+            g.faceYaw = toCam;
+         }
+         double d = wrap(toCam - g.faceYaw);
+         double limit = Math.toRadians(40.0);
+         if (Math.abs(d) > limit) g.faceYaw = wrap(g.faceYaw + (d - Math.signum(d) * limit) * (1.0 - Math.exp(-frameDt * 2.5)));
+         float face = (float)g.faceYaw;
+         out.rotateY(pose, face);
+         axX = Math.cos(face); axY = 0.0; axZ = -Math.sin(face);
+         ayX = 0.0; ayY = 1.0; ayZ = 0.0;
+         double h = Math.sqrt((cam.x - g.px) * (cam.x - g.px) + (cam.z - g.pz) * (cam.z - g.pz));
+         double tilt = Math.max(-0.45, Math.min(0.45, Math.atan2(cam.y - g.py, h)));
+         out.rotateX(pose, (float)-tilt);
+         return;
+      }
       if (camRot != null) {
          // faces the screen exactly and takes over the camera roll (Do a Barrel Roll)
          out.rotate(pose, camRot);
@@ -859,10 +911,72 @@ public final class WorldLyricsRenderer {
    private static double wy(WorldLyricsRenderer.Group g, float x, float y, float s) { return g.py + axY * x * s - ayY * y * s; }
    private static double wz(WorldLyricsRenderer.Group g, float x, float y, float s) { return g.pz + axZ * x * s - ayZ * y * s; }
 
+   /** Light, haze and under water fog for one group, from where it floats and how far away it is. */
+   private static void envFor(WorldLyricsRenderer.Group g, Vec3 cam) {
+      curPacked = dev.lyricfall.compat.EnvLight.FULL;
+      curLightK = 1.0F;
+      curHaze = 0.0F;
+      curFogA = 1.0F;
+      if (!frameImmersive) return;
+      try {
+         curPacked = dev.lyricfall.compat.EnvLight.packedAt(g.px, g.py, g.pz);
+         curLightK = 0.38F + 0.62F * dev.lyricfall.compat.EnvLight.brightness(curPacked);
+      } catch (Throwable ignored) {
+      }
+      double dist = Math.sqrt((g.px - cam.x) * (g.px - cam.x) + (g.py - cam.y) * (g.py - cam.y) + (g.pz - cam.z) * (g.pz - cam.z));
+      switch (frameFluid) {
+         case "WATER" -> {
+            curHazeRgb = 0x1D4F80;
+            curHaze = (float)Math.max(0.15, Math.min(0.8, dist / 16.0));
+            curFogA = 1.0F - 0.65F * (float)Math.min(1.0, dist / 26.0);
+         }
+         case "LAVA" -> { curHazeRgb = 0xC0400A; curHaze = 0.7F; curFogA = 0.6F; }
+         case "POWDER_SNOW" -> { curHazeRgb = 0xF2F6FF; curHaze = 0.6F; curFogA = 0.7F; }
+         default -> {
+            curHazeRgb = frameHaze;
+            curHaze = (float)Math.max(0.0, Math.min(0.3, (dist - 14.0) / 70.0));
+         }
+      }
+   }
+
+   private static int shade(int rgb, float k) {
+      int r = Math.round(((rgb >> 16) & 255) * k), gg = Math.round(((rgb >> 8) & 255) * k), b = Math.round((rgb & 255) * k);
+      return r << 16 | gg << 8 | b;
+   }
+
+   /** With the shader overlay there is no depth buffer: a ray per word decides whether a block hides it. */
+   private static void wordOcclusion(WorldLyricsRenderer.Group g, WorldLyricsRenderer.Word w, float cx, float baseY, float s, HudConfig cfg) {
+      float want = 1.0F;
+      if (frameOverlay && frameImmersive && !cfg.worldSeeThrough && g.index != -7000) {
+         long now = System.nanoTime();
+         if (now - w.occAt > WORD_OCCLUSION_NS) {
+            w.occAt = now;
+            w.occTarget = 1.0F;
+            Minecraft mc = Minecraft.getInstance();
+            Vec3 cam = lastCam;
+            if (mc.level != null && mc.player != null && cam != null) {
+               try {
+                  Vec3 to = new Vec3(wx(g, cx, baseY, s), wy(g, cx, baseY, s), wz(g, cx, baseY, s));
+                  HitResult hit = mc.level.clip(new ClipContext(cam, to, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, mc.player));
+                  if (hit instanceof BlockHitResult block && hit.getType() != HitResult.Type.MISS
+                        && hit.getLocation().distanceToSqr(cam) < to.distanceToSqr(cam) - 0.09) {
+                     // glass, leaves and the like only dim the word
+                     w.occTarget = mc.level.getBlockState(block.getBlockPos()).canOcclude() ? 0.0F : 0.5F;
+                  }
+               } catch (RuntimeException ignored) {
+               }
+            }
+         }
+         want = w.occTarget;
+      }
+      w.occK += (want - w.occK) * (1.0F - (float)Math.exp(-frameDt * 12.0F));
+   }
+
    /** Particles when a word starts and the light source on the word being sung. */
    private static void wordFx(WorldLyricsRenderer.Group g, WorldLyricsRenderer.Word w, boolean sungNow, float baseY, float s, HudConfig cfg, double wall) {
-      if (!g.timed) return;
       float cx = w.x + w.w / 2.0F;
+      wordOcclusion(g, w, cx, baseY, s, cfg);
+      if (!g.timed) return;
       if (!w.sparked) {
          w.sparked = true;
          if (cfg.worldParticles != HudConfig.WorldParticles.OFF && !w.adlib) {
@@ -931,6 +1045,7 @@ public final class WorldLyricsRenderer {
       dots.pz = t.z;
       dots.placed = true;
       seeNow = cfg.worldSeeThrough || occluded(dots, cam);
+      envFor(dots, cam);
       double wall = System.nanoTime() / 1.0E9;
       float s = 0.026F * cfg.worldScale * 1.3F;
       pose.pushPose();
@@ -1040,6 +1155,15 @@ public final class WorldLyricsRenderer {
             }
       }
 
+      if (frameImmersive) {
+         // unsung words take the light of their spot, the sung one glows on its own
+         if (frameOverlay && !lit) rgb = shade(rgb, curLightK);
+         if (frameOverlay && curHaze > 0.0F) rgb = lerpRgb(rgb, curHazeRgb, curHaze);
+         if (frameOverlay) alpha *= curFogA;
+      }
+      out.setLight(frameImmersive && !lit && !frameOverlay ? curPacked : dev.lyricfall.compat.EnvLight.FULL);
+      alpha *= w.occK;
+
       if (w.adlib) {
          // background voice: smaller, paler, a touch lighter
          k *= ADLIB_K;
@@ -1134,6 +1258,13 @@ public final class WorldLyricsRenderer {
                d.rgb = color(cfg, g, lx, glyphIndex++, false, wall);
                d.restYaw = face + (rnd.nextFloat() - 0.5F) * 0.9F;
                d.ground = level == null ? d.y - 64.0 : groundBelow(level, d.x, d.y, d.z);
+               if (cfg.worldImmersive) {
+                  try {
+                     d.packed = dev.lyricfall.compat.EnvLight.packedAt(d.x, Math.max(d.ground + 0.5, d.y - 1.0), d.z);
+                     d.lightK = 0.38F + 0.62F * dev.lyricfall.compat.EnvLight.brightness(d.packed);
+                  } catch (Throwable ignored) {
+                  }
+               }
                switch (d.mode) {
                   case FALL:
                      d.delay = k * stagger;
@@ -1342,7 +1473,10 @@ public final class WorldLyricsRenderer {
                }
             }
 
-            out.text(pose, -d.w / 2.0F, -4.5F, d.seq, cfg.worldShadow, false, a255 << 24 | d.rgb & 16777215);
+            int drgb = d.rgb & 16777215;
+            if (frameImmersive && frameOverlay) drgb = shade(drgb, d.lightK);
+            out.setLight(frameImmersive && !frameOverlay ? d.packed : dev.lyricfall.compat.EnvLight.FULL);
+            out.text(pose, -d.w / 2.0F, -4.5F, d.seq, cfg.worldShadow, false, a255 << 24 | drgb);
             pose.popPose();
          }
       }
@@ -1461,6 +1595,8 @@ public final class WorldLyricsRenderer {
       boolean shattered;
       boolean occluded;
       long occCheckedAt;
+      boolean faceInit;
+      double faceYaw;
 
       Group(int index, boolean follow, long lineMs, boolean timed) {
          this.index = index;
@@ -1497,6 +1633,8 @@ public final class WorldLyricsRenderer {
       float age;
       float landedAt;
       double ground;
+      int packed = dev.lyricfall.compat.EnvLight.FULL;
+      float lightK = 1.0F;
       boolean landed;
       boolean bounced;
    }
@@ -1512,6 +1650,8 @@ public final class WorldLyricsRenderer {
       String text;
       boolean adlib;
       boolean sparked;
+      float occK = 1.0F, occTarget = 1.0F;
+      long occAt;
       int rawW;
       FormattedCharSequence seq;
       List<WorldLyricsRenderer.Glyph> glyphs = List.of();

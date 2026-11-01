@@ -159,6 +159,7 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(new RenderModeRow());
                 rows.add(choice("world_mode", () -> c.worldMode, v -> c.worldMode = v));
                 rows.add(choice("follow", () -> c.worldFollowStyle, v -> c.worldFollowStyle = v));
+                rows.add(choice("world_facing", () -> c.worldFacing, v -> c.worldFacing = v));
                 rows.add(choice("word_layout", () -> c.worldLayout, v -> c.worldLayout = v));
                 rows.add(toggle("world_smooth", () -> c.worldSmooth, v -> c.worldSmooth = v));
                 rows.add(toggle("world_bank", () -> c.worldBank, v -> c.worldBank = v));
@@ -167,6 +168,7 @@ public class HudConfigScreen extends ModScreen {
                 rows.add(slider("distance", 3, 30, 0.5, D.worldDistance, () -> c.worldDistance, v -> c.worldDistance = (float) v, HudConfigScreen::blocks));
                 rows.add(slider("height", -1.5, 3, 0.1, D.worldHeight, () -> c.worldHeight, v -> c.worldHeight = (float) v, HudConfigScreen::blocksSigned));
                 rows.add(slider("world_spread", 15, 90, 1, D.worldSpread, () -> c.worldSpread, v -> c.worldSpread = (float) v, HudConfigScreen::degrees));
+                rows.add(toggle("world_immersive", () -> c.worldImmersive, v -> c.worldImmersive = v));
                 rows.add(toggle("see_through", () -> c.worldSeeThrough, v -> c.worldSeeThrough = v));
                 rows.add(toggle("text_shadow", () -> c.worldShadow, v -> c.worldShadow = v));
                 rows.add(button("demo", WorldLyricsRenderer::demo, false));
