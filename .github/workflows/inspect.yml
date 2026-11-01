@@ -1,0 +1,42 @@
+name: Inspect Minecraft classes
+on:
+  push:
+    paths: [".github/workflows/inspect.yml"]
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Resolve Minecraft
+        run: |
+          chmod +x gradlew
+          ./gradlew :fabric-26.3:compileJava -q || true
+      - name: Decompile
+        run: |
+          curl -sSL -o cfr.jar https://repo1.maven.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar
+          JAR=""
+          for j in $(find ~/.gradle/caches -name "*.jar" -size +10M 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/client/gui/Hud.class"; then JAR="$j"; break; fi
+          done
+          echo "jar: $JAR"
+          mkdir -p out
+          for c in net.minecraft.client.gui.Hud net.minecraft.client.gui.Gui net.minecraft.client.renderer.GameRenderer; do
+            java -jar cfr.jar --classpath "$JAR" --extraclasspath "$JAR" "$JAR" --jarfilter "^${c//./\\.}\$" --outputdir out 2>/dev/null || true
+          done
+          find out -name "*.java" | head
+      - name: Publish
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan inspect
+          git rm -rq --cached . || true
+          git add -f out
+          git commit -qm "decompiled classes"
+          git push -f origin inspect
